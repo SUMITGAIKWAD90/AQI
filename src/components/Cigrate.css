@@ -1,0 +1,79 @@
+/* Global Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    text-align: center;
+    /* background: linear-gradient(to right, #e0f7fa, #f1f8e9); Light gradient background */
+}
+
+/* Main Container */
+.container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background: white;
+    box-shadow: 0 6px 12px rgba(0, 0,  0, 0.15);
+    border-radius: 12px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.container:hover {
+    transform: scale(1.02); /* Subtle zoom effect */
+}
+
+/* Cigarette Equivalent Display */
+/* Cigarette Equivalent Display */
+.cigarette-info {
+    font-size: 22px;
+    /* margin-top: 20px; */
+    background: linear-gradient(to right, #ecff80, #21cb03); /* Smooth gradient */
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    transition: transform 0.3s ease-in-out;
+}
+
+.cigarette-info:hover {
+    transform: scale(1.05);
+}
+
+/* Cigarette Count Styling */
+.cigeratte-count {
+    background-color: #00c3ff;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+    transition: background 0.3s ease-in-out, transform 0.2s;
+    display: inline-block;
+}
+
+.cigeratte-count:hover {
+    background-color: #25cad8;
+    transform: scale(1.1);
+}
+
+/* Button Styling */
+button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    background: #00796b;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out, transform 0.2s;
+}
+
+button:hover {
+    background: #004d40;
+    transform: scale(1.05);
+}

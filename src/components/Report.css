@@ -1,0 +1,141 @@
+/* Apply default styles */
+* {
+    color: black;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+/* Main container */
+.report-container {
+    max-width: 900px;
+    /* margin: 20px auto; */
+    /* padding: 20px; */
+    background: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+/* Heading */
+.report-container h2 {
+    color: #222;
+    font-size: 26px;
+}
+
+/* Scrollable Table */
+.table-container {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+}
+
+/* Forecast Table */
+.forecast-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Table Header */
+.forecast-table thead {
+    background: #1e88e5;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.forecast-table th {
+    padding: 8px;
+    border: 2px solid #ddd;
+    text-transform: uppercase;
+}
+
+/* Table Body */
+.forecast-table td {
+    padding: 5px;
+    padding-top: 2px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+/* Hover effect on table rows */
+.forecast-table tbody tr:hover {
+    background: #f1f1f1;
+}
+
+/* Forecast Entry (Grouped by Date) */
+.forecast-date {
+    font-size: 20px;
+    font-weight: bold;
+    color: #1e88e5;
+    margin-top: 20px;
+    padding: 10px;
+    background: #e3f2fd;
+    border-radius: 5px;
+}
+
+/* Individual forecast item */
+.forecast-entry {
+    background: #fff;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.forecast-entry:hover {
+    transform: scale(1.02);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* AQI Badge Styling */
+.aqi-badge {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+/* AQI Level Colors */
+.aqi-1 {
+    background-color: #4caf50;
+    color: white;
+}
+
+.aqi-2 {
+    background-color: #ffeb3b;
+    color: black;
+}
+
+.aqi-3 {
+    background-color: #ff9800;
+    color: white;
+}
+
+.aqi-4 {
+    background-color: #f44336;
+    color: white;
+}
+
+.aqi-5 {
+    background-color: #6a1b9a;
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .report-container {
+        width: 95%;
+        /* padding: 15px; */
+        padding-top: 0px;
+    }
+
+    .forecast-table th, .forecast-table td {
+        padding: 8px;
+        font-size: 14px;
+    }
+}

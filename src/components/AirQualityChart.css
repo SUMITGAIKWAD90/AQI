@@ -1,0 +1,10 @@
+.chart-container {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .chart-wrapper {
+    width: 800px;
+    height: 400px;
+    margin: 0 auto;
+  }
