@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Badge from "./Badge";
 import Loader from "./Loader";
 import "./Report.css";
@@ -30,7 +30,7 @@ const Report = (props) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchForecast = async () => {
+  const fetchForecast = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(
@@ -57,11 +57,11 @@ const Report = (props) => {
       setError("Failed to load forecast data");
       setLoading(false);
     }
-  };
+  }, [props.lat, props.long]);
 
   useEffect(() => {
     fetchForecast();
-  }, [props.lat, props.long]);
+  }, [fetchForecast]);
 
   return (
     <div className="report-container">

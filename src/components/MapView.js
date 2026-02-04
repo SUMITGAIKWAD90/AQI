@@ -18,11 +18,41 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
+const PM25_BREAKPOINTS = [
+  { C_low: 0, C_high: 12, I_low: 0, I_high: 50 },
+  { C_low: 12.1, C_high: 35.4, I_low: 51, I_high: 100 },
+  { C_low: 35.5, C_high: 55.4, I_low: 101, I_high: 150 },
+  { C_low: 55.5, C_high: 150.4, I_low: 151, I_high: 200 },
+  { C_low: 150.5, C_high: 250.4, I_low: 201, I_high: 300 },
+  { C_low: 250.5, C_high: 500.4, I_low: 301, I_high: 500 },
+];
+
+const PM10_BREAKPOINTS = [
+  { C_low: 0, C_high: 54, I_low: 0, I_high: 50 },
+  { C_low: 55, C_high: 154, I_low: 51, I_high: 100 },
+  { C_low: 155, C_high: 254, I_low: 101, I_high: 150 },
+  { C_low: 255, C_high: 354, I_low: 151, I_high: 200 },
+  { C_low: 355, C_high: 424, I_low: 201, I_high: 300 },
+  { C_low: 425, C_high: 604, I_low: 301, I_high: 500 },
+];
+
+const calculateAQI = (concentration, breakpoints) => {
+  for (let bp of breakpoints) {
+    if (bp.C_low <= concentration && concentration <= bp.C_high) {
+      return Math.round(
+        ((bp.I_high - bp.I_low) / (bp.C_high - bp.C_low)) *
+          (concentration - bp.C_low) +
+          bp.I_low
+      );
+    }
+  }
+  return null;
+};
+
 const MapView = ({city}) => {
   const [center, setCenter] = useState([18.5204, 73.8567]); // Default: Pune
   const [location, setLocation] = useState(null);
   const [airQuality, setAirQuality] = useState(null);
-  const [predictedAQI, setPredictedAQI] = useState(null);
   const [apiAQI, setApiAQI] = useState(null);
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState("");
@@ -73,8 +103,8 @@ const MapView = ({city}) => {
 
       const components = dataPoint.components;
       const apiAQIValue = dataPoint.main?.aqi ?? null;
-      const aqiPm25 = calculateAQI(components.pm2_5 || 0, pm25Breakpoints);
-      const aqiPm10 = calculateAQI(components.pm10 || 0, pm10Breakpoints);
+      const aqiPm25 = calculateAQI(components.pm2_5 || 0, PM25_BREAKPOINTS);
+      const aqiPm10 = calculateAQI(components.pm10 || 0, PM10_BREAKPOINTS);
       const calculatedAQI = Math.max(aqiPm25 ?? 0, aqiPm10 ?? 0);
 
       setcalAQI(calculatedAQI);
@@ -83,10 +113,6 @@ const MapView = ({city}) => {
       setTotalData(components);
       console.log("Setpm25 " + components.pm2_5);
       console.log("Components Data: ", components);
-      
-      if (apiAQIValue !== null) {
-        predictFutureAQI(apiAQIValue);
-      }
     } catch (error) {
       console.error("Error fetching air quality data:", error);
     }
@@ -125,16 +151,6 @@ const MapView = ({city}) => {
       setSearching(false);
     }
   }, [searchCity, memoizedApiKey]);
-
-  // 🎯 Predict Future AQI (Using a Simple Trend Model)
-  const predictFutureAQI = (currentAQI) => {
-    // Simulating a future AQI based on current trends
-    const randomFactor = Math.random() * 2 - 1; // Randomly decrease/increase
-    let futureAQI = Math.round(currentAQI + randomFactor);
-    futureAQI = Math.min(5, Math.max(1, futureAQI)); // Keep within 1-5 range
-
-    setPredictedAQI(futureAQI);
-  };
 
   // 🎨 Define Circle Colors Based on AQI Levels
   const getColor = (aqi) => {
@@ -175,39 +191,6 @@ const MapView = ({city}) => {
       return "Unhealthy air quality! Avoid outdoor activities, wear masks, and reduce fossil fuel use.";
     }
   };
-
-  //Calculate AQI
-
-  const calculateAQI = (concentration, breakpoints) => {
-    for (let bp of breakpoints) {
-      if (bp.C_low <= concentration && concentration <= bp.C_high) {
-        return Math.round(
-          ((bp.I_high - bp.I_low) / (bp.C_high - bp.C_low)) *
-            (concentration - bp.C_low) +
-            bp.I_low
-        );
-      }
-    }
-    return null;
-  };
-
-  const pm25Breakpoints = [
-    { C_low: 0, C_high: 12, I_low: 0, I_high: 50 },
-    { C_low: 12.1, C_high: 35.4, I_low: 51, I_high: 100 },
-    { C_low: 35.5, C_high: 55.4, I_low: 101, I_high: 150 },
-    { C_low: 55.5, C_high: 150.4, I_low: 151, I_high: 200 },
-    { C_low: 150.5, C_high: 250.4, I_low: 201, I_high: 300 },
-    { C_low: 250.5, C_high: 500.4, I_low: 301, I_high: 500 },
-  ];
-
-  const pm10Breakpoints = [
-    { C_low: 0, C_high: 54, I_low: 0, I_high: 50 },
-    { C_low: 55, C_high: 154, I_low: 51, I_high: 100 },
-    { C_low: 155, C_high: 254, I_low: 101, I_high: 150 },
-    { C_low: 255, C_high: 354, I_low: 151, I_high: 200 },
-    { C_low: 355, C_high: 424, I_low: 201, I_high: 300 },
-    { C_low: 425, C_high: 604, I_low: 301, I_high: 500 },
-  ];
 
   return (
     <>
