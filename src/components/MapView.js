@@ -1,25 +1,41 @@
-import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Circle, Popup } from "react-leaflet";
 import axios from "axios";
-import AirQualityChart from "./AirQualityChart";
-import Sidebar from "./Sidebar";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Circle, MapContainer, Popup, TileLayer } from "react-leaflet";
+import Badge from "./Badge";
+import Card from "./Card";
 import Cigrate from "./Cigrate";
-import VoiceAssistant from "./VoiceAssistant";
+import Loader from "./Loader";
+import "./MapView.css";
+import Sidebar from "./Sidebar";
+
+// Fix for default marker icons in Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
 
 const MapView = ({city}) => {
   const [center, setCenter] = useState([18.5204, 73.8567]); // Default: Pune
   const [location, setLocation] = useState(null);
   const [airQuality, setAirQuality] = useState(null);
   const [predictedAQI, setPredictedAQI] = useState(null);
+  const [apiAQI, setApiAQI] = useState(null);
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState("");
   const [calAQI, setcalAQI] = useState(null);
   const [totalData, setTotalData] =  useState(null);
-  const [pm25, setpm25] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
 
   const apiKey = "d20a1d1d93a48db41372a0393ad30a84"; // OpenWeather API Key
   // setSearchCity(props.transcript); 
 
+  // ✅ Memoize API key to prevent re-renders
+  const memoizedApiKey = useMemo(() => apiKey, []);
 
   // ✅ Get User's Current Location
   useEffect(() => {
@@ -29,15 +45,52 @@ const MapView = ({city}) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
           setLocation({ lat, lon });
+          setLoading(false);
         },
         (err) => {
           setError(err.message);
+          setLoading(false);
         }
       );
     } else {
       setError("Geolocation is not supported by your browser.");
+      setLoading(false);
     }
   }, []);
+
+  // ✅ Fetch Air Quality Data with useCallback to prevent recreating on every render
+  const fetchAirQuality = useCallback(async (lat, lon) => {
+    try {
+      const response = await axios.get(
+        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${memoizedApiKey}`
+      );
+
+      const dataPoint = response?.data?.list?.[0];
+      if (!dataPoint) {
+        setError("No air quality data available.");
+        return;
+      }
+
+      const components = dataPoint.components;
+      const apiAQIValue = dataPoint.main?.aqi ?? null;
+      const aqiPm25 = calculateAQI(components.pm2_5 || 0, pm25Breakpoints);
+      const aqiPm10 = calculateAQI(components.pm10 || 0, pm10Breakpoints);
+      const calculatedAQI = Math.max(aqiPm25 ?? 0, aqiPm10 ?? 0);
+
+      setcalAQI(calculatedAQI);
+      setApiAQI(apiAQIValue);
+      setAirQuality({ lat, lon, aqi: calculatedAQI });
+      setTotalData(components);
+      console.log("Setpm25 " + components.pm2_5);
+      console.log("Components Data: ", components);
+      
+      if (apiAQIValue !== null) {
+        predictFutureAQI(apiAQIValue);
+      }
+    } catch (error) {
+      console.error("Error fetching air quality data:", error);
+    }
+  }, [memoizedApiKey]);
 
   // ✅ Update map center when location is available
   useEffect(() => {
@@ -45,54 +98,33 @@ const MapView = ({city}) => {
       setCenter([location.lat, location.lon]);
       fetchAirQuality(location.lat, location.lon);
     }
-  }, [location]);
+  }, [location, fetchAirQuality]);
 
-  // ✅ Fetch Air Quality Data
-  const fetchAirQuality = async (lat, lon) => {
-    try {
-      const response = await axios.get(
-        `http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`
-      );
-
-      const aqiData = await Calculated(lat, lon);
-      setcalAQI(aqiData.calculatedAQI);
-
-      const aqi = response.data.list[0].main.aqi; // Extract AQI value
-      setAirQuality({ lat, lon, aqi: aqiData.calculatedAQI });
-
-      const components = response.data.list[0].components;
-      setTotalData(components); // Store only the components, if needed
-      setpm25(components.pm2_5);
-      console.log("Setpm25 "+ pm25);
-      console.log("Components Data: ", components);
-      // Predict future AQI
-      predictFutureAQI(aqi);
-    } catch (error) {
-      console.error("Error fetching air quality data:", error);
-    }
-  };
-
-  // ✅ Fetch City Coordinates
-  const fetchCityCoordinates = async () => {
+  // ✅ Fetch City Coordinates with debouncing
+  const fetchCityCoordinates = useCallback(async () => {
     if (!searchCity) return;
 
+    setSearching(true);
+    setError(null);
     try {
       const response = await axios.get(
-        `http://api.openweathermap.org/geo/1.0/direct?q=${searchCity}&limit=1&appid=${apiKey}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=1&appid=${memoizedApiKey}`
       );
 
       if (response.data.length > 0) {
         const { lat, lon } = response.data[0];
+        setLocation({ lat, lon });
         setCenter([lat, lon]);
-        console.log("location :" + location);
-        fetchAirQuality(lat, lon);
       } else {
         setError("City not found. Please try again.");
       }
     } catch (error) {
       console.error("Error fetching city coordinates:", error);
+      setError("Failed to fetch city coordinates. Please try again.");
+    } finally {
+      setSearching(false);
     }
-  };
+  }, [searchCity, memoizedApiKey]);
 
   // 🎯 Predict Future AQI (Using a Simple Trend Model)
   const predictFutureAQI = (currentAQI) => {
@@ -106,20 +138,38 @@ const MapView = ({city}) => {
 
   // 🎨 Define Circle Colors Based on AQI Levels
   const getColor = (aqi) => {
-    if (aqi < 50) return "green"; // Good
-    if (50 < aqi < 100) return "yellow"; // Moderate
-    if (100 < aqi < 150) return "orange"; // Unhealthy
-    if (aqi > 150) return "red"; // Unhealthy
-    return "gray"; // Default
+    if (aqi < 50) return "#10B981"; // Good
+    if (aqi < 100) return "#FBBF24"; // Moderate
+    if (aqi < 150) return "#F59E0B"; // Unhealthy
+    if (aqi >= 150) return "#EF4444"; // Very Unhealthy
+    return "#64748B"; // Default
+  };
+  
+  // Get AQI Badge Variant
+  const getAQIBadgeVariant = (aqi) => {
+    if (aqi < 50) return "good";
+    if (aqi < 100) return "moderate";
+    if (aqi < 150) return "unhealthy";
+    if (aqi >= 150) return "very-unhealthy";
+    return "default";
+  };
+  
+  // Get AQI Label
+  const getAQILabel = (aqi) => {
+    if (aqi < 50) return "Good";
+    if (aqi < 100) return "Moderate";
+    if (aqi < 150) return "Unhealthy";
+    if (aqi >= 150) return "Very Unhealthy";
+    return "Unknown";
   };
 
   // 🛠️ Suggestions for Air Quality Improvement
   const getRecommendations = (aqi) => {
     if (aqi < 50) {
       return "Air quality is good. Maintain greenery and reduce vehicle emissions.";
-    } else if (50 < aqi < 100) {
+    } else if (aqi < 100) {
       return "Moderate air quality. Consider using air purifiers and reducing outdoor activities.";
-    } else if (100 < aqi < 150) {
+    } else if (aqi < 150) {
       return "Unhealthy air quality. Elder,childern and people with lung disease may be affected";
     } else {
       return "Unhealthy air quality! Avoid outdoor activities, wear masks, and reduce fossil fuel use.";
@@ -159,148 +209,139 @@ const MapView = ({city}) => {
     { C_low: 425, C_high: 604, I_low: 301, I_high: 500 },
   ];
 
-  const Calculated = async (lat, lon) => {
-    try {
-      const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`
-      );
-
-      const data = response.data.list[0];
-      const pollutants = data.components;
-      const apiAQI = data.main.aqi;
-
-      const aqiPm25 = calculateAQI(pollutants.pm2_5 || 0, pm25Breakpoints);
-      const aqiPm10 = calculateAQI(pollutants.pm10 || 0, pm10Breakpoints);
-      const calculatedAQI = Math.max(aqiPm25, aqiPm10);
-
-      return { apiAQI, calculatedAQI, pollutants };
-    } catch (error) {
-      console.error("Error fetching air quality data:", error);
-      return null;
-    }
-  };
-
   return (
     <>
-    <div style={{ display: "flex", height: "90vh", padding: "20px", gap: "20px" }}>
-      <div  style={{ flex: 1, margin: "10px", padding: "20px", background: "#f0f0f0", borderRadius: "10px" }}>
-        {/* Search Bar */}
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-            background: "white",
-            padding: "2px",
-            borderRadius: "10px",
-            boxShadow: "0px 0px 10px rgba(0,0,0,0.1)",
-            display: "flex",
-            gap: "0px",
-            marginTop:"8rem",
-            marginLeft:"4rem",
-           
-          }}
-        >
-          <input
-            type="text"
-            value={searchCity}
-            onChange={(e) => setSearchCity(e.target.value)}
-            placeholder="Enter city name"
-            style={{
-              padding: "6px",
-              paddingLeft:"0px",
-              border: "1px solid #ccc",
-              borderRadius: "5px",
-              outline: "none",
-            }}
-          />
-          <button
-            onClick={fetchCityCoordinates}
-            style={{
-              padding: "8px ",
-              background: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              marginTop:"5px",
-            }}
+      <div className="dashboard-top">
+        {/* Map Section */}
+        <div className="map-section">
+          <Card 
+            title="Interactive Air Quality Map"
+            subtitle="Real-time AQI monitoring with location-based data"
+            icon="🗺️"
+            action={
+              calAQI && (
+                <Badge variant={getAQIBadgeVariant(calAQI)} size="lg">
+                  AQI: {calAQI} - {getAQILabel(calAQI)}
+                </Badge>
+              )
+            }
           >
-            Search
-          </button>
-          
-          {/* <VoiceAssistant/> */}
+            {/* Search Bar */}
+            <div className="map-search-bar">
+              <input
+                type="text"
+                value={searchCity}
+                onChange={(e) => setSearchCity(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && fetchCityCoordinates()}
+                placeholder="Search for a city..."
+                className="search-input"
+              />
+              <button
+                onClick={fetchCityCoordinates}
+                className="search-button"
+                disabled={searching || !searchCity}
+              >
+                {searching ? '🔍' : '🔎'} Search
+              </button>
+            </div>
+
+            {/* Map Container */}
+            <div className="map-container-wrapper">
+              {loading ? (
+                <Loader size="lg" text="Loading map data..." />
+              ) : (
+                <MapContainer
+                  center={center}
+                  zoom={13}
+                  style={{ height: "100%", width: "100%", borderRadius: "var(--radius-md)" }}
+                  className="leaflet-map"
+                  preferCanvas={true}
+                  whenReady={() => console.log("Map loaded successfully")}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution="&copy; OpenStreetMap contributors"
+                    maxZoom={19}
+                    keepBuffer={2}
+                  />
+
+                  {/* ✅ Show Air Quality Circle Based on AQI */}
+                  {airQuality && (
+                    <Circle
+                      center={[airQuality.lat, airQuality.lon]}
+                      radius={500}
+                      pathOptions={{
+                        color: getColor(calAQI),
+                        fillColor: getColor(calAQI),
+                        fillOpacity: 0.5,
+                      }}
+                    >
+                      <Popup>
+                        <div className="map-popup">
+                          <h4 className="popup-title">Air Quality Index</h4>
+                          <div className="popup-aqi">
+                            <span className="popup-aqi-value">{airQuality.aqi}</span>
+                            <Badge variant={getAQIBadgeVariant(calAQI)} size="sm">
+                              {getAQILabel(calAQI)}
+                            </Badge>
+                          </div>
+                          <p className="popup-recommendation">{getRecommendations(calAQI)}</p>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  )}
+
+                  {/* ✅ Show Errors (if any) */}
+                  {error && (
+                    <div className="map-error">
+                      ⚠️ {error}
+                    </div>
+                  )}
+                </MapContainer>
+              )}
+            </div>
+
+            {/* AQI Legend */}
+            <div className="map-legend">
+              <div className="legend-title">AQI Scale</div>
+              <div className="legend-items">
+                <div className="legend-item">
+                  <span className="legend-color" style={{ background: '#10B981' }}></span>
+                  <span className="legend-label">0-50 Good</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ background: '#FBBF24' }}></span>
+                  <span className="legend-label">51-100 Moderate</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ background: '#F59E0B' }}></span>
+                  <span className="legend-label">101-150 Unhealthy</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ background: '#EF4444' }}></span>
+                  <span className="legend-label">151+ Very Unhealthy</span>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
-        {/* <span style={{
-            padding: "2px",
-            backgroundColor:"lightslategray",
-            marginLeft:"100vh"
-          }}>
-            Wild Fire
-          </span> */}
-        <MapContainer
-          center={center}
-          zoom={13}
-          style={{ height: "70vh", width: "100%" }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
 
-          {/* ✅ Show Air Quality Circle Based on AQI */}
-          {airQuality && (
-            <Circle
-              center={[airQuality.lat, airQuality.lon]}
-              radius={500} // Radius in meters
-              pathOptions={{
-                color: getColor(calAQI),
-                fillColor: getColor(calAQI),
-                fillOpacity: 0.5,
-              }}
-            >
-              <Popup>
-                <strong>Current AQI: {airQuality.aqi}</strong>
-                {/*<br />
-               <span>
-                {airQuality.aqi === 1 || airQuality.aqi === 2
-                  ? "Good "
-                  : airQuality.aqi === 3
-                  ? "Moderate "
-                  : "Unhealthy "}
-              </span> 
-              <br />
-              <strong>Predicted AQI (Next 24h): {predictedAQI}</strong>*/}
-                <br />
-                <span>{getRecommendations(calAQI)}</span>
-              </Popup>
-            </Circle>
+        {/* Pollutants Sidebar */}
+        <div className="pollutants-section">
+          {totalData ? <Sidebar totalData={totalData} /> : (
+            <div className="pollutant-sidebar">
+              <Loader size="md" text="Loading pollutant data..." />
+            </div>
           )}
-
-          {/* ✅ Show Errors (if any) */}
-          {error && (
-            <p
-              style={{ color: "red", position: "absolute", top: 50, left: 10 }}
-            >
-              {error}
-            </p>
-          )}
-        </MapContainer>
-        {/* <AirQualityChart lat ={location.lat} lon ={location.lon} /> */}
+        </div>
       </div>
-       <div style={{ width: "300px", margin: "10px", padding: "20px", background: "#e0e0e0", borderRadius: "10px" }}>
-        {/* PPass air quality to sidebar */}
-        {totalData  && <Sidebar totalData={totalData} />}
-      </div> 
-    </div>
-    <hr/>
-    <div style={{display:"flex"}}>
-    <AirQualityChart/>
-   {location && totalData && <Cigrate location={location} totalData={totalData}/>}
- 
-   </div>
+
+      {/* Cigarette Equivalent */}
+      {location && totalData && (
+        <div className="dashboard-bottom">
+          <Cigrate location={location} totalData={totalData} apiAQI={apiAQI} />
+        </div>
+      )}
     </>
   );
 };

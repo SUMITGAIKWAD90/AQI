@@ -1,75 +1,144 @@
-/* General Navbar Styling */
+/* Modern Navbar Styling */
 .navbar {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background: linear-gradient(135deg, #3a7bd5, #00d2ff); /* Sky blue gradient */
-    padding: 10px 20px; /* Reduced height */
-    color: white;
-    /* position: sticky; */
-    top: 0;
-    width: 100%; /* Full width */
-    z-index: 2000;
-    border-radius: 2px; /* No rounded corners */
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.navbar-container {
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Brand Section */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.brand-icon {
+  font-size: 2.5rem;
+  filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.4));
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin: 0;
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  line-height: 1;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* Navigation Menu */
+.nav-menu {
+  display: flex;
+  list-style: none;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.nav-item {
+  margin: 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link.active {
+  color: var(--primary-light);
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(14, 165, 233, 0.3);
+}
+
+.nav-icon {
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: var(--spacing-md) var(--spacing-lg);
   }
   
-  .logo {
-    font-size: 22px;
-    font-weight: bold;
+  .brand-title {
+    font-size: 1.25rem;
   }
   
-  /* Navigation Links */
-  .nav-links {
-    display: flex;
-    list-style: none;
-    width: 100%;
-    font-weight: bold;
+  .brand-subtitle {
+    font-size: 0.7rem;
   }
   
-  .nav-links li {
-    margin: 0 12px; /* Adjusted spacing */
+  .nav-menu {
+    gap: var(--spacing-xs);
   }
   
-  .nav-links a {
-    text-decoration: none;
-    color: white;
-    font-size: 16px; /* Slightly smaller font */
-    transition: 0.3s;
+  .nav-link {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.85rem;
   }
   
-  .nav-links a:hover {
-    color: #f4a261;
+  .nav-icon {
+    font-size: 1rem;
   }
-  
-  /* Mobile Menu */
-  .menu-icon {
+}
+
+@media (max-width: 480px) {
+  .brand-subtitle {
     display: none;
-    font-size: 22px;
-    cursor: pointer;
   }
   
-  /* Responsive Navbar */
-  @media screen and (max-width: 768px) {
-    .menu-icon {
-      display: block;
-    }
-  
-    .nav-links {
-      display: none;
-      flex-direction: column;
-      position: absolute;
-      top: 50px; /* Adjusted for smaller navbar */
-      right: 2px;
-      background: rgba(58, 123, 213, 0.9);
-      width: 100%;
-      /* text-align: center; */
-    }
-  
-    .nav-links.active {
-      display: flex;
-    }
-  
-    .nav-links li {
-      padding: 12px 0;
-    }
+  .nav-link {
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    padding: var(--spacing-sm);
   }
+}

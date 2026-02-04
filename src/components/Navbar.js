@@ -1,33 +1,33 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom"; // If using React Router
-import { FaBars, FaTimes } from "react-icons/fa";
-import "./Navbar.css"; // Import CSS file
+import { Link } from "react-router-dom";
+import "./Navbar.css";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
   return (
     <nav className="navbar">
-      <div style={{  color: "white" }} className="logo">
-        🌎 Air Pollution Monitoring System
+      <div className="navbar-container">
+        <div className="navbar-brand">
+          <div className="brand-icon">🌍</div>
+          <div className="brand-text">
+            <h1 className="brand-title">AQI Monitor</h1>
+            <p className="brand-subtitle">Environmental Data Dashboard</p>
+          </div>
+        </div>
+        
+        <ul className="nav-menu">
+          <li className="nav-item">
+            <Link to="/" className="nav-link active">
+              <span className="nav-icon">🏠</span>
+              Dashboard
+            </Link>
+          </li>
+          <li className="nav-item">
+            <Link to="https://wildfire-monitoring.onrender.com" className="nav-link">
+              <span className="nav-icon">🔥</span>
+              Wildfire Monitor
+            </Link>
+          </li>
+        </ul>
       </div>
-        <div>
-      <ul style={{display:"flex", textcolor:"white", }} className="nav-links">
-        <li>
-          <Link to="/">Home</Link>
-        </li>
-        <li>
-          <Link to="https://wildfire-monitoring.onrender.com">Wild Fire</Link>
-        </li>
-      </ul>
-      </div>
-      {/* <div className="menu-icon" onClick={toggleMenu}>
-        {isOpen ? <FaTimes /> : <FaBars />}
-      </div> */}
     </nav>
   );
 };

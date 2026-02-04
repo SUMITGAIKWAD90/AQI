@@ -1,103 +1,112 @@
-import React, { useEffect, useState } from 'react';
-import Notification from './Notification';
+import { useMemo, useState } from 'react';
+import Badge from './Badge';
+import Card from './Card';
+import './Cigrate.css';
 import Report from './Report';
- import './Cigrate.css';
 
-function Cigrate(props) {
-  const [aqi, setAqi] = useState(""); 
-  const [pm25, setPm25] = useState(null);
-  const [cigarettes, setCigarettes] = useState(0);
-  const [showReport,setShowReport] = useState( )
-  const [count, setCount]= useState(1)
+function Cigrate({ location, totalData, apiAQI }) {
+  const [showReport, setShowReport] = useState(false);
 
-  const lat = props.location.lat;
-  const long = props.location.lat;
+  const lat = location.lat;
+  const long = location.lon;
+  const pm25Value = totalData?.pm2_5 ?? null;
+  const cigarettes = useMemo(() => {
+    if (pm25Value === null) return null;
+    return (pm25Value / 22).toFixed(2);
+  }, [pm25Value]);
 
-  const fetchAirQuality = async () => { 
-    try {
-      const res = await fetch(
-        `http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${long}&appid=d20a1d1d93a48db41372a0393ad30a84`
-      );
-
-
-      const data = await res.json();
-      // console.log(data.list[0].main)
-      console.log(data.list)
-      if (data?.list?.length > 0) {
-        setAqi(data.list[0].main.aqi);
-
-
-        const pm25Value = props.totalData.pm2_5; // Extract PM2.5
-        console.log(" props.totalData " + props.totalData.pm2_5);
-        setPm25(props.totalData.pm2_5);
-
-        // Calculate cigarettes equivalent
-        const cigaretteEquivalent = (props.totalData.pm2_5 / 22).toFixed(2);
-        setCigarettes(cigaretteEquivalent);
+  const getAQIDetails = (aqiValue) => {
+    const details = {
+      1: {
+        title: "🌿 Excellent Air Quality",
+        message: "The air is fresh and safe to breathe. Enjoy your day outdoors!",
+        variant: "good"
+      },
+      2: {
+        title: "😷 Moderate Air Quality",
+        message: "Some pollutants are present. Sensitive individuals should be cautious.",
+        variant: "moderate"
+      },
+      3: {
+        title: "⚠️ Unhealthy for Sensitive Groups",
+        message: "People with breathing issues should limit outdoor activities.",
+        variant: "unhealthy"
+      },
+      4: {
+        title: "❌ Unhealthy Air Quality",
+        message: "Everyone may experience health effects. Reduce outdoor exposure.",
+        variant: "very-unhealthy"
+      },
+      5: {
+        title: "☠️ Hazardous Air Quality",
+        message: "Extremely bad air! Stay indoors and wear a mask if going out.",
+        variant: "hazardous"
       }
-    } catch (error) {
-      console.error("Error fetching air quality data:", error);
-    }
+    };
+    return details[aqiValue] || details[2];
   };
 
-
-  useEffect(() => {
-    fetchAirQuality();
-  }, []);
-
-
+  const aqiDetails = getAQIDetails(apiAQI);
 
   return (
-    <>
-    <div className="container">
-  {aqi === 1 && <Notification title={"🌿 Excellent Air Quality"} 
-    message={"The air is fresh and safe to breathe. Enjoy your day outdoors!"}
-    className="notification aqi-good" /> }
+    <Card 
+      title="Health Impact Analysis"
+      subtitle="Cigarette equivalent and air quality recommendations"
+      icon="🏥"
+    >
+      <div className="cigrate-container">
+        {/* AQI Notification */}
+        {apiAQI !== null && (
+          <div className="aqi-notification">
+            <div className="notification-header">
+              <h4 className="notification-title">{aqiDetails.title}</h4>
+              <Badge variant={aqiDetails.variant} size="md">AQI {apiAQI}</Badge>
+            </div>
+            <p className="notification-message">{aqiDetails.message}</p>
+          </div>
+        )}
 
-  {aqi === 2 && <Notification title={"😷 Moderate Air Quality"}
-    message={"Some pollutants are present. Sensitive individuals should be cautious."}
-    className="notification aqi-moderate" /> }  
+        {/* Cigarette Equivalent */}
+        <div className="cigarette-section">
+          {pm25Value !== null ? (
+            <>
+              <div className="cigarette-metric">
+                <div className="metric-icon">🌫️</div>
+                <div className="metric-content">
+                  <span className="metric-label">PM2.5 Level</span>
+                  <span className="metric-value">{pm25Value.toFixed(2)} µg/m³</span>
+                </div>
+              </div>
+              
+              <div className="cigarette-equivalence">
+                <div className="equivalence-icon">🚬</div>
+                <div className="equivalence-content">
+                  <span className="equivalence-label">Daily Cigarette Equivalent</span>
+                  <span className="equivalence-value">{cigarettes} cigarettes</span>
+                  <span className="equivalence-hint">Based on PM2.5 exposure</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="loading-message">
+              <span className="loading-icon">⏳</span>
+              <span>Loading air quality data...</span>
+            </div>
+          )}
+        </div>
 
-  {aqi === 3 && <Notification title={"⚠ Unhealthy for Sensitive Groups"}
-    message={"People with breathing issues should limit outdoor activities."}
-    className="notification aqi-unhealthy" /> }
+        {/* Prediction Button */}
+        <button 
+          onClick={() => setShowReport(!showReport)}
+          className="prediction-button"
+        >
+          {showReport ? "Hide Predictions" : "View 5-Day AQI Forecast"}
+        </button>
 
-  {aqi === 4 && <Notification title={"❌ Unhealthy Air Quality"}
-    message={"Everyone may experience health effects. Reduce outdoor exposure."}
-    className="notification aqi-very-unhealthy" /> }
-
-  {aqi === 5 && <Notification title={"☠ Hazardous Air Quality"}
-    message={"Extremely bad air! Stay indoors and wear a mask if going out."}
-    className="notification aqi-hazardous" /> }
-<div className="cigarette-info">
-  {pm25 !== null ? (
-    <p>
-       🌫️ PM2.5 Level: <span className='cigeratte-count'>  <strong>{props.totalData.pm2_5} µg/m³</strong> </span><br />
-      Equivalent to smoking  🚬 <span className='cigeratte-count'> <strong>{cigarettes} cigarettes  per day</strong></span>.
-    </p>
-  ) : (
-    <p>⏳ Loading air quality data...</p>
-  )}
-</div>
-
-  <button onClick={() => setShowReport(!showReport)}>
-        {showReport ? "Hide " : "Predict AQI (PM2.5 & PM10 )for 5 days"}
-      </button>
-
-      {/* Show Report component when button is clicked */}
-      {showReport && <Report lat={lat} long={long} />}
-</div>
-  
-     
-
-    {/* <button onClick={()=>setCount(count + 1)}>COUNT is : {count}</button> */}
-    {/* <button onClick={()=>Report}>Viewwwww</button> */}
-
-
-
-    {/* For showing Report */}
- 
-    </>
+        {/* Show Report component when button is clicked */}
+        {showReport && <Report lat={lat} long={long} />}
+      </div>
+    </Card>
   );
 }
 
