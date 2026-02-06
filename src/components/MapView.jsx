@@ -66,6 +66,7 @@ const MapView = ({city}) => {
   const [apiAQI, setApiAQI] = useState(null);
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
   const [calAQI, setcalAQI] = useState(null);
   const [totalData, setTotalData] =  useState(null);
   const [loading, setLoading] = useState(true);
@@ -224,6 +225,47 @@ const MapView = ({city}) => {
     isSearchAnimatingRef.current = false;
   }, [waitForTiles, waitForMoveEnd]);
 
+  const formatResultLabel = useCallback((result) => {
+    const parts = [result.name, result.state, result.country].filter(Boolean);
+    return parts.join(", ");
+  }, []);
+
+  const pickBestResult = useCallback((results, query) => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return null;
+
+    const tokens = normalized
+      .split(",")
+      .flatMap((part) => part.trim().split(/\s+/))
+      .filter(Boolean);
+
+    if (tokens.length <= 1) return null;
+
+    return results.find((result) => {
+      const haystack = [result.name, result.state, result.country]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return tokens.every((token) => haystack.includes(token));
+    }) || null;
+  }, []);
+
+  const handleResultSelect = useCallback(async (result) => {
+    const lat = Number(result.lat);
+    const lon = Number(result.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      setError("Invalid location coordinates. Please try another result.");
+      return;
+    }
+
+    setSearchCity(formatResultLabel(result));
+    setSearchResults([]);
+    setError(null);
+    setLocation({ lat, lon });
+    await runSearchTransition(lat, lon);
+  }, [formatResultLabel, runSearchTransition]);
+
   // ✅ Apply queued search animation once the map is ready
   useEffect(() => {
     if (!mapReady || !pendingSearchRef.current) return;
@@ -245,15 +287,25 @@ const MapView = ({city}) => {
 
     setSearching(true);
     setError(null);
+    setSearchResults([]);
     try {
       const response = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=1&appid=${memoizedApiKey}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=5&appid=${memoizedApiKey}`
       );
 
       if (response.data.length > 0) {
-        const { lat, lon } = response.data[0];
-        setLocation({ lat, lon });
-        await runSearchTransition(lat, lon);
+        const bestResult = pickBestResult(response.data, searchCity);
+        if (bestResult) {
+          await handleResultSelect(bestResult);
+          return;
+        }
+
+        if (response.data.length === 1) {
+          await handleResultSelect(response.data[0]);
+          return;
+        }
+
+        setSearchResults(response.data);
       } else {
         setError("City not found. Please try again.");
       }
@@ -263,7 +315,7 @@ const MapView = ({city}) => {
     } finally {
       setSearching(false);
     }
-  }, [searchCity, memoizedApiKey, runSearchTransition]);
+  }, [searchCity, memoizedApiKey, pickBestResult, handleResultSelect]);
 
   // 🎨 Define Circle Colors Based on AQI Levels
   const getColor = (aqi) => {
@@ -327,7 +379,10 @@ const MapView = ({city}) => {
               <input
                 type="text"
                 value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
+                onChange={(e) => {
+                  setSearchCity(e.target.value);
+                  setSearchResults([]);
+                }}
                 onKeyPress={(e) => e.key === 'Enter' && fetchCityCoordinates()}
                 placeholder="Search for a city..."
                 className="search-input"
@@ -340,6 +395,24 @@ const MapView = ({city}) => {
                 {searching ? '🔍' : '🔎'} Search
               </button>
             </div>
+
+            {searchResults.length > 0 && (
+              <div className="search-results">
+                {searchResults.map((result) => (
+                  <button
+                    type="button"
+                    key={`${result.name}-${result.lat}-${result.lon}`}
+                    className="search-result-item"
+                    onClick={() => handleResultSelect(result)}
+                  >
+                    <span className="search-result-name">{formatResultLabel(result)}</span>
+                    <span className="search-result-meta">
+                      {Number(result.lat).toFixed(3)}, {Number(result.lon).toFixed(3)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Map Container */}
             <div className="map-container-wrapper">
