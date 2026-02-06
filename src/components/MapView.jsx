@@ -1,8 +1,11 @@
 import axios from "axios";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Circle, MapContainer, Popup, TileLayer } from "react-leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Circle, MapContainer, Marker, Popup, TileLayer, Tooltip } from "react-leaflet";
 import Badge from "./Badge";
 import Card from "./Card";
 import Cigrate from "./Cigrate";
@@ -13,9 +16,9 @@ import Sidebar from "./Sidebar";
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow
 });
 
 const PM25_BREAKPOINTS = [
@@ -36,6 +39,15 @@ const PM10_BREAKPOINTS = [
   { C_low: 425, C_high: 604, I_low: 301, I_high: 500 },
 ];
 
+const DEFAULT_CENTER = [18.5204, 73.8567]; // Default: Pune
+const DEFAULT_ZOOM = 13;
+const SEARCH_TARGET_ZOOM = DEFAULT_ZOOM;
+const SEARCH_PAN_DURATION = 1.2; // seconds
+const SEARCH_EASE_LINEARITY = 0.25;
+const TILE_WAIT_TIMEOUT = 3500; // ms
+const MOVE_WAIT_TIMEOUT = 2500; // ms
+const RESULTS_BOUNDS_PADDING = 40;
+
 const calculateAQI = (concentration, breakpoints) => {
   for (let bp of breakpoints) {
     if (bp.C_low <= concentration && concentration <= bp.C_high) {
@@ -50,22 +62,46 @@ const calculateAQI = (concentration, breakpoints) => {
 };
 
 const MapView = ({city}) => {
-  const [center, setCenter] = useState([18.5204, 73.8567]); // Default: Pune
   const [location, setLocation] = useState(null);
   const [airQuality, setAirQuality] = useState(null);
   const [apiAQI, setApiAQI] = useState(null);
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
   const [calAQI, setcalAQI] = useState(null);
   const [totalData, setTotalData] =  useState(null);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const tileLoadingRef = useRef(false);
+  const pendingSearchRef = useRef(null);
+  const isSearchAnimatingRef = useRef(false);
+  const searchSequenceRef = useRef(0);
+  const searchMarkerIcon = useMemo(() => (
+    L.divIcon({
+      className: "search-marker",
+      html: "<span class='search-marker-dot'></span>",
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    })
+  ), []);
 
   const apiKey = "d20a1d1d93a48db41372a0393ad30a84"; // OpenWeather API Key
   // setSearchCity(props.transcript); 
 
   // ✅ Memoize API key to prevent re-renders
   const memoizedApiKey = useMemo(() => apiKey, []);
+
+  const tileEventHandlers = useMemo(() => ({
+    loading: () => {
+      tileLoadingRef.current = true;
+    },
+    load: () => {
+      tileLoadingRef.current = false;
+    },
+  }), []);
 
   // ✅ Get User's Current Location
   useEffect(() => {
@@ -118,29 +154,215 @@ const MapView = ({city}) => {
     }
   }, [memoizedApiKey]);
 
-  // ✅ Update map center when location is available
+  // ✅ Fetch AQI when location changes
   useEffect(() => {
     if (location) {
-      setCenter([location.lat, location.lon]);
       fetchAirQuality(location.lat, location.lon);
     }
   }, [location, fetchAirQuality]);
 
+  const flyToLocation = useCallback((lat, lon) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo([lat, lon], DEFAULT_ZOOM, { duration: 0.9, easeLinearity: 0.25 });
+  }, []);
+
+  const waitForTiles = useCallback((timeoutMs = TILE_WAIT_TIMEOUT) => {
+    const layer = tileLayerRef.current;
+    if (!layer || !tileLoadingRef.current) return Promise.resolve();
+
+    return new Promise((resolve) => {
+      let timeoutId = null;
+      const finish = () => {
+        layer.off("load", onLoad);
+        if (timeoutId) clearTimeout(timeoutId);
+        resolve();
+      };
+      const onLoad = () => finish();
+      layer.on("load", onLoad);
+      if (timeoutMs && Number.isFinite(timeoutMs)) {
+        timeoutId = setTimeout(() => finish(), timeoutMs);
+      }
+    });
+  }, []);
+
+  const waitForMoveEnd = useCallback((timeoutMs = MOVE_WAIT_TIMEOUT) => {
+    const map = mapRef.current;
+    if (!map) return Promise.resolve();
+
+    return new Promise((resolve) => {
+      let timeoutId = null;
+      const finish = () => {
+        map.off("moveend", onMoveEnd);
+        if (timeoutId) clearTimeout(timeoutId);
+        resolve();
+      };
+      const onMoveEnd = () => finish();
+      map.on("moveend", onMoveEnd);
+      if (timeoutMs && Number.isFinite(timeoutMs)) {
+        timeoutId = setTimeout(() => finish(), timeoutMs);
+      }
+    });
+  }, []);
+
+  const runSearchTransition = useCallback(async (lat, lon) => {
+    const map = mapRef.current;
+    if (!map) {
+      pendingSearchRef.current = { lat, lon };
+      return;
+    }
+
+    searchSequenceRef.current += 1;
+    const sequence = searchSequenceRef.current;
+    isSearchAnimatingRef.current = true;
+
+    map.stop();
+    await waitForTiles();
+    if (searchSequenceRef.current !== sequence) return;
+
+    map.flyTo([lat, lon], SEARCH_TARGET_ZOOM, {
+      duration: SEARCH_PAN_DURATION,
+      easeLinearity: SEARCH_EASE_LINEARITY,
+    });
+
+    await waitForMoveEnd();
+    if (searchSequenceRef.current !== sequence) return;
+
+    await waitForTiles();
+    if (searchSequenceRef.current !== sequence) return;
+
+    isSearchAnimatingRef.current = false;
+  }, [waitForTiles, waitForMoveEnd]);
+
+  const formatResultLabel = useCallback((result) => {
+    const parts = [result.name, result.state].filter(Boolean);
+    if (parts.length === 1 && result.country) {
+      parts.push(result.country);
+    }
+    return parts.join(", ");
+  }, []);
+
+  const dedupeResults = useCallback((results) => {
+    const seen = new Set();
+    return results.filter((result) => {
+      const name = (result.name || "").toLowerCase();
+      const state = (result.state || "").toLowerCase();
+      const country = (result.country || "").toLowerCase();
+      const key = state ? `${name}|${state}` : `${name}|${country}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, []);
+
+  const filterResultsForQuery = useCallback((results, query) => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return results;
+
+    const hasComma = normalized.includes(",");
+    if (hasComma) {
+      const [cityPart, regionPart] = normalized
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      if (!cityPart) return results;
+
+      return results.filter((result) => {
+        const name = (result.name || "").toLowerCase();
+        const state = (result.state || "").toLowerCase();
+        const country = (result.country || "").toLowerCase();
+        const cityOk = name.includes(cityPart);
+        if (!regionPart) return cityOk;
+        return cityOk && (state.includes(regionPart) || country.includes(regionPart));
+      });
+    }
+
+    const tokens = normalized
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (tokens.length <= 1) return results;
+
+    return results.filter((result) => {
+      const haystack = [result.name, result.state, result.country]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return tokens.every((token) => haystack.includes(token));
+    });
+  }, []);
+
+  const handleResultSelect = useCallback(async (result) => {
+    const lat = Number(result.lat);
+    const lon = Number(result.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      setError("Invalid location coordinates. Please try another result.");
+      return;
+    }
+
+    setSearchCity(formatResultLabel(result));
+    setSearchResults([]);
+    setError(null);
+    setLocation({ lat, lon });
+    await runSearchTransition(lat, lon);
+  }, [formatResultLabel, runSearchTransition]);
+
+  // ✅ Apply queued search animation once the map is ready
+  useEffect(() => {
+    if (!mapReady || !pendingSearchRef.current) return;
+    const { lat, lon } = pendingSearchRef.current;
+    pendingSearchRef.current = null;
+    runSearchTransition(lat, lon);
+  }, [mapReady, runSearchTransition]);
+
+  // ✅ Recenter to user's location when available (skip during search animation)
+  useEffect(() => {
+    if (!location || !mapReady) return;
+    if (isSearchAnimatingRef.current) return;
+    flyToLocation(location.lat, location.lon);
+  }, [location, mapReady, flyToLocation]);
+
+  useEffect(() => {
+    if (!mapReady || searchResults.length <= 1) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const bounds = L.latLngBounds(
+      searchResults.map((result) => [Number(result.lat), Number(result.lon)])
+    );
+
+    map.stop();
+    map.flyToBounds(bounds, {
+      padding: [RESULTS_BOUNDS_PADDING, RESULTS_BOUNDS_PADDING],
+      duration: 0.9,
+      easeLinearity: 0.25,
+    });
+  }, [mapReady, searchResults]);
   // ✅ Fetch City Coordinates with debouncing
   const fetchCityCoordinates = useCallback(async () => {
     if (!searchCity) return;
 
     setSearching(true);
     setError(null);
+    setSearchResults([]);
     try {
       const response = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=1&appid=${memoizedApiKey}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=5&appid=${memoizedApiKey}`
       );
 
-      if (response.data.length > 0) {
-        const { lat, lon } = response.data[0];
-        setLocation({ lat, lon });
-        setCenter([lat, lon]);
+      const results = dedupeResults(response.data || []);
+      if (results.length > 0) {
+        const filteredResults = filterResultsForQuery(results, searchCity);
+        const finalResults = filteredResults.length > 0 ? filteredResults : results;
+
+        if (finalResults.length === 1) {
+          await handleResultSelect(finalResults[0]);
+          return;
+        }
+
+        setSearchResults(finalResults);
       } else {
         setError("City not found. Please try again.");
       }
@@ -150,7 +372,7 @@ const MapView = ({city}) => {
     } finally {
       setSearching(false);
     }
-  }, [searchCity, memoizedApiKey]);
+  }, [searchCity, memoizedApiKey, filterResultsForQuery, handleResultSelect, dedupeResults]);
 
   // 🎨 Define Circle Colors Based on AQI Levels
   const getColor = (aqi) => {
@@ -214,9 +436,12 @@ const MapView = ({city}) => {
               <input
                 type="text"
                 value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
+                onChange={(e) => {
+                  setSearchCity(e.target.value);
+                  setSearchResults([]);
+                }}
                 onKeyPress={(e) => e.key === 'Enter' && fetchCityCoordinates()}
-                placeholder="Search for a city..."
+                placeholder="Search city, state (e.g., City, State)"
                 className="search-input"
               />
               <button
@@ -228,25 +453,67 @@ const MapView = ({city}) => {
               </button>
             </div>
 
+            {searchResults.length > 0 && (
+              <div className="search-results">
+                {searchResults.map((result) => (
+                  <button
+                    type="button"
+                    key={`${result.name}-${result.lat}-${result.lon}`}
+                    className="search-result-item"
+                    onClick={() => handleResultSelect(result)}
+                  >
+                    <span className="search-result-name">{formatResultLabel(result)}</span>
+                    <span className="search-result-meta">
+                      {Number(result.lat).toFixed(3)}, {Number(result.lon).toFixed(3)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Map Container */}
             <div className="map-container-wrapper">
               {loading ? (
                 <Loader size="lg" text="Loading map data..." />
               ) : (
                 <MapContainer
-                  center={center}
-                  zoom={13}
+                  center={DEFAULT_CENTER}
+                  zoom={DEFAULT_ZOOM}
                   style={{ height: "100%", width: "100%", borderRadius: "var(--radius-md)" }}
                   className="leaflet-map"
                   preferCanvas={true}
-                  whenReady={() => console.log("Map loaded successfully")}
+                  whenReady={(event) => {
+                    const mapInstance = event?.target ?? event;
+                    mapRef.current = mapInstance;
+                    setMapReady(true);
+                    console.log("Map loaded successfully");
+                  }}
                 >
                   <TileLayer
+                    ref={tileLayerRef}
+                    eventHandlers={tileEventHandlers}
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution="&copy; OpenStreetMap contributors"
                     maxZoom={19}
                     keepBuffer={2}
+                    updateWhenZooming={false}
                   />
+
+                  {searchResults.length > 0 && searchResults.map((result) => (
+                    <Marker
+                      key={`result-${result.name}-${result.lat}-${result.lon}`}
+                      position={[Number(result.lat), Number(result.lon)]}
+                      icon={searchMarkerIcon}
+                      eventHandlers={{
+                        click: () => handleResultSelect(result),
+                      }}
+                      zIndexOffset={1000}
+                    >
+                      <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
+                        {formatResultLabel(result)}
+                      </Tooltip>
+                    </Marker>
+                  ))}
 
                   {/* ✅ Show Air Quality Circle Based on AQI */}
                   {airQuality && (
