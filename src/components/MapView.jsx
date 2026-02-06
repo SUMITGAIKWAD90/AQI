@@ -1,7 +1,10 @@
 import axios from "axios";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Circle, MapContainer, Popup, TileLayer } from "react-leaflet";
 import Badge from "./Badge";
 import Card from "./Card";
@@ -13,9 +16,9 @@ import Sidebar from "./Sidebar";
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow
 });
 
 const PM25_BREAKPOINTS = [
@@ -36,6 +39,14 @@ const PM10_BREAKPOINTS = [
   { C_low: 425, C_high: 604, I_low: 301, I_high: 500 },
 ];
 
+const DEFAULT_CENTER = [18.5204, 73.8567]; // Default: Pune
+const DEFAULT_ZOOM = 13;
+const SEARCH_TARGET_ZOOM = DEFAULT_ZOOM;
+const SEARCH_PAN_DURATION = 1.2; // seconds
+const SEARCH_EASE_LINEARITY = 0.25;
+const TILE_WAIT_TIMEOUT = 3500; // ms
+const MOVE_WAIT_TIMEOUT = 2500; // ms
+
 const calculateAQI = (concentration, breakpoints) => {
   for (let bp of breakpoints) {
     if (bp.C_low <= concentration && concentration <= bp.C_high) {
@@ -50,7 +61,6 @@ const calculateAQI = (concentration, breakpoints) => {
 };
 
 const MapView = ({city}) => {
-  const [center, setCenter] = useState([18.5204, 73.8567]); // Default: Pune
   const [location, setLocation] = useState(null);
   const [airQuality, setAirQuality] = useState(null);
   const [apiAQI, setApiAQI] = useState(null);
@@ -60,12 +70,28 @@ const MapView = ({city}) => {
   const [totalData, setTotalData] =  useState(null);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const tileLoadingRef = useRef(false);
+  const pendingSearchRef = useRef(null);
+  const isSearchAnimatingRef = useRef(false);
+  const searchSequenceRef = useRef(0);
 
   const apiKey = "d20a1d1d93a48db41372a0393ad30a84"; // OpenWeather API Key
   // setSearchCity(props.transcript); 
 
   // ✅ Memoize API key to prevent re-renders
   const memoizedApiKey = useMemo(() => apiKey, []);
+
+  const tileEventHandlers = useMemo(() => ({
+    loading: () => {
+      tileLoadingRef.current = true;
+    },
+    load: () => {
+      tileLoadingRef.current = false;
+    },
+  }), []);
 
   // ✅ Get User's Current Location
   useEffect(() => {
@@ -118,13 +144,100 @@ const MapView = ({city}) => {
     }
   }, [memoizedApiKey]);
 
-  // ✅ Update map center when location is available
+  // ✅ Fetch AQI when location changes
   useEffect(() => {
     if (location) {
-      setCenter([location.lat, location.lon]);
       fetchAirQuality(location.lat, location.lon);
     }
   }, [location, fetchAirQuality]);
+
+  const flyToLocation = useCallback((lat, lon) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo([lat, lon], DEFAULT_ZOOM, { duration: 0.9, easeLinearity: 0.25 });
+  }, []);
+
+  const waitForTiles = useCallback((timeoutMs = TILE_WAIT_TIMEOUT) => {
+    const layer = tileLayerRef.current;
+    if (!layer || !tileLoadingRef.current) return Promise.resolve();
+
+    return new Promise((resolve) => {
+      let timeoutId = null;
+      const finish = () => {
+        layer.off("load", onLoad);
+        if (timeoutId) clearTimeout(timeoutId);
+        resolve();
+      };
+      const onLoad = () => finish();
+      layer.on("load", onLoad);
+      if (timeoutMs && Number.isFinite(timeoutMs)) {
+        timeoutId = setTimeout(() => finish(), timeoutMs);
+      }
+    });
+  }, []);
+
+  const waitForMoveEnd = useCallback((timeoutMs = MOVE_WAIT_TIMEOUT) => {
+    const map = mapRef.current;
+    if (!map) return Promise.resolve();
+
+    return new Promise((resolve) => {
+      let timeoutId = null;
+      const finish = () => {
+        map.off("moveend", onMoveEnd);
+        if (timeoutId) clearTimeout(timeoutId);
+        resolve();
+      };
+      const onMoveEnd = () => finish();
+      map.on("moveend", onMoveEnd);
+      if (timeoutMs && Number.isFinite(timeoutMs)) {
+        timeoutId = setTimeout(() => finish(), timeoutMs);
+      }
+    });
+  }, []);
+
+  const runSearchTransition = useCallback(async (lat, lon) => {
+    const map = mapRef.current;
+    if (!map) {
+      pendingSearchRef.current = { lat, lon };
+      return;
+    }
+
+    searchSequenceRef.current += 1;
+    const sequence = searchSequenceRef.current;
+    isSearchAnimatingRef.current = true;
+
+    map.stop();
+    await waitForTiles();
+    if (searchSequenceRef.current !== sequence) return;
+
+    map.flyTo([lat, lon], SEARCH_TARGET_ZOOM, {
+      duration: SEARCH_PAN_DURATION,
+      easeLinearity: SEARCH_EASE_LINEARITY,
+    });
+
+    await waitForMoveEnd();
+    if (searchSequenceRef.current !== sequence) return;
+
+    await waitForTiles();
+    if (searchSequenceRef.current !== sequence) return;
+
+    isSearchAnimatingRef.current = false;
+  }, [waitForTiles, waitForMoveEnd]);
+
+  // ✅ Apply queued search animation once the map is ready
+  useEffect(() => {
+    if (!mapReady || !pendingSearchRef.current) return;
+    const { lat, lon } = pendingSearchRef.current;
+    pendingSearchRef.current = null;
+    runSearchTransition(lat, lon);
+  }, [mapReady, runSearchTransition]);
+
+  // ✅ Recenter to user's location when available (skip during search animation)
+  useEffect(() => {
+    if (!location || !mapReady) return;
+    if (isSearchAnimatingRef.current) return;
+    flyToLocation(location.lat, location.lon);
+  }, [location, mapReady, flyToLocation]);
 
   // ✅ Fetch City Coordinates with debouncing
   const fetchCityCoordinates = useCallback(async () => {
@@ -140,7 +253,7 @@ const MapView = ({city}) => {
       if (response.data.length > 0) {
         const { lat, lon } = response.data[0];
         setLocation({ lat, lon });
-        setCenter([lat, lon]);
+        await runSearchTransition(lat, lon);
       } else {
         setError("City not found. Please try again.");
       }
@@ -150,7 +263,7 @@ const MapView = ({city}) => {
     } finally {
       setSearching(false);
     }
-  }, [searchCity, memoizedApiKey]);
+  }, [searchCity, memoizedApiKey, runSearchTransition]);
 
   // 🎨 Define Circle Colors Based on AQI Levels
   const getColor = (aqi) => {
@@ -234,18 +347,26 @@ const MapView = ({city}) => {
                 <Loader size="lg" text="Loading map data..." />
               ) : (
                 <MapContainer
-                  center={center}
-                  zoom={13}
+                  center={DEFAULT_CENTER}
+                  zoom={DEFAULT_ZOOM}
                   style={{ height: "100%", width: "100%", borderRadius: "var(--radius-md)" }}
                   className="leaflet-map"
                   preferCanvas={true}
-                  whenReady={() => console.log("Map loaded successfully")}
+                  whenReady={(event) => {
+                    const mapInstance = event?.target ?? event;
+                    mapRef.current = mapInstance;
+                    setMapReady(true);
+                    console.log("Map loaded successfully");
+                  }}
                 >
                   <TileLayer
+                    ref={tileLayerRef}
+                    eventHandlers={tileEventHandlers}
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution="&copy; OpenStreetMap contributors"
                     maxZoom={19}
                     keepBuffer={2}
+                    updateWhenZooming={false}
                   />
 
                   {/* ✅ Show Air Quality Circle Based on AQI */}
