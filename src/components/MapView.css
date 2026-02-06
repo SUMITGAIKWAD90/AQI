@@ -102,6 +102,58 @@
   white-space: nowrap;
 }
 
+.search-marker {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.search-marker-dot {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #0ea5e9;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.75);
+  animation: searchPulse 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.search-marker-dot::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(14, 165, 233, 0.6);
+  animation: searchRing 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes searchPulse {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes searchRing {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
 .map-container-wrapper {
   flex: 1;
   min-height: 400px;

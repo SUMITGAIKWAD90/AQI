@@ -5,7 +5,7 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Circle, MapContainer, Popup, TileLayer } from "react-leaflet";
+import { Circle, MapContainer, Marker, Popup, TileLayer, Tooltip } from "react-leaflet";
 import Badge from "./Badge";
 import Card from "./Card";
 import Cigrate from "./Cigrate";
@@ -46,6 +46,7 @@ const SEARCH_PAN_DURATION = 1.2; // seconds
 const SEARCH_EASE_LINEARITY = 0.25;
 const TILE_WAIT_TIMEOUT = 3500; // ms
 const MOVE_WAIT_TIMEOUT = 2500; // ms
+const RESULTS_BOUNDS_PADDING = 40;
 
 const calculateAQI = (concentration, breakpoints) => {
   for (let bp of breakpoints) {
@@ -78,6 +79,14 @@ const MapView = ({city}) => {
   const pendingSearchRef = useRef(null);
   const isSearchAnimatingRef = useRef(false);
   const searchSequenceRef = useRef(0);
+  const searchMarkerIcon = useMemo(() => (
+    L.divIcon({
+      className: "search-marker",
+      html: "<span class='search-marker-dot'></span>",
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    })
+  ), []);
 
   const apiKey = "d20a1d1d93a48db41372a0393ad30a84"; // OpenWeather API Key
   // setSearchCity(props.transcript); 
@@ -226,28 +235,62 @@ const MapView = ({city}) => {
   }, [waitForTiles, waitForMoveEnd]);
 
   const formatResultLabel = useCallback((result) => {
-    const parts = [result.name, result.state, result.country].filter(Boolean);
+    const parts = [result.name, result.state].filter(Boolean);
+    if (parts.length === 1 && result.country) {
+      parts.push(result.country);
+    }
     return parts.join(", ");
   }, []);
 
-  const pickBestResult = useCallback((results, query) => {
+  const dedupeResults = useCallback((results) => {
+    const seen = new Set();
+    return results.filter((result) => {
+      const name = (result.name || "").toLowerCase();
+      const state = (result.state || "").toLowerCase();
+      const country = (result.country || "").toLowerCase();
+      const key = state ? `${name}|${state}` : `${name}|${country}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, []);
+
+  const filterResultsForQuery = useCallback((results, query) => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return null;
+    if (!normalized) return results;
+
+    const hasComma = normalized.includes(",");
+    if (hasComma) {
+      const [cityPart, regionPart] = normalized
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      if (!cityPart) return results;
+
+      return results.filter((result) => {
+        const name = (result.name || "").toLowerCase();
+        const state = (result.state || "").toLowerCase();
+        const country = (result.country || "").toLowerCase();
+        const cityOk = name.includes(cityPart);
+        if (!regionPart) return cityOk;
+        return cityOk && (state.includes(regionPart) || country.includes(regionPart));
+      });
+    }
 
     const tokens = normalized
-      .split(",")
-      .flatMap((part) => part.trim().split(/\s+/))
+      .split(/\s+/)
       .filter(Boolean);
 
-    if (tokens.length <= 1) return null;
+    if (tokens.length <= 1) return results;
 
-    return results.find((result) => {
+    return results.filter((result) => {
       const haystack = [result.name, result.state, result.country]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return tokens.every((token) => haystack.includes(token));
-    }) || null;
+    });
   }, []);
 
   const handleResultSelect = useCallback(async (result) => {
@@ -281,6 +324,22 @@ const MapView = ({city}) => {
     flyToLocation(location.lat, location.lon);
   }, [location, mapReady, flyToLocation]);
 
+  useEffect(() => {
+    if (!mapReady || searchResults.length <= 1) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const bounds = L.latLngBounds(
+      searchResults.map((result) => [Number(result.lat), Number(result.lon)])
+    );
+
+    map.stop();
+    map.flyToBounds(bounds, {
+      padding: [RESULTS_BOUNDS_PADDING, RESULTS_BOUNDS_PADDING],
+      duration: 0.9,
+      easeLinearity: 0.25,
+    });
+  }, [mapReady, searchResults]);
   // ✅ Fetch City Coordinates with debouncing
   const fetchCityCoordinates = useCallback(async () => {
     if (!searchCity) return;
@@ -293,19 +352,17 @@ const MapView = ({city}) => {
         `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=5&appid=${memoizedApiKey}`
       );
 
-      if (response.data.length > 0) {
-        const bestResult = pickBestResult(response.data, searchCity);
-        if (bestResult) {
-          await handleResultSelect(bestResult);
+      const results = dedupeResults(response.data || []);
+      if (results.length > 0) {
+        const filteredResults = filterResultsForQuery(results, searchCity);
+        const finalResults = filteredResults.length > 0 ? filteredResults : results;
+
+        if (finalResults.length === 1) {
+          await handleResultSelect(finalResults[0]);
           return;
         }
 
-        if (response.data.length === 1) {
-          await handleResultSelect(response.data[0]);
-          return;
-        }
-
-        setSearchResults(response.data);
+        setSearchResults(finalResults);
       } else {
         setError("City not found. Please try again.");
       }
@@ -315,7 +372,7 @@ const MapView = ({city}) => {
     } finally {
       setSearching(false);
     }
-  }, [searchCity, memoizedApiKey, pickBestResult, handleResultSelect]);
+  }, [searchCity, memoizedApiKey, filterResultsForQuery, handleResultSelect, dedupeResults]);
 
   // 🎨 Define Circle Colors Based on AQI Levels
   const getColor = (aqi) => {
@@ -384,7 +441,7 @@ const MapView = ({city}) => {
                   setSearchResults([]);
                 }}
                 onKeyPress={(e) => e.key === 'Enter' && fetchCityCoordinates()}
-                placeholder="Search for a city..."
+                placeholder="Search city, state (e.g., City, State)"
                 className="search-input"
               />
               <button
@@ -441,6 +498,22 @@ const MapView = ({city}) => {
                     keepBuffer={2}
                     updateWhenZooming={false}
                   />
+
+                  {searchResults.length > 0 && searchResults.map((result) => (
+                    <Marker
+                      key={`result-${result.name}-${result.lat}-${result.lon}`}
+                      position={[Number(result.lat), Number(result.lon)]}
+                      icon={searchMarkerIcon}
+                      eventHandlers={{
+                        click: () => handleResultSelect(result),
+                      }}
+                      zIndexOffset={1000}
+                    >
+                      <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
+                        {formatResultLabel(result)}
+                      </Tooltip>
+                    </Marker>
+                  ))}
 
                   {/* ✅ Show Air Quality Circle Based on AQI */}
                   {airQuality && (
