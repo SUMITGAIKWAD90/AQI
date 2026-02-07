@@ -12,6 +12,8 @@ import Cigrate from "./Cigrate";
 import Loader from "./Loader";
 import "./MapView.css";
 import Sidebar from "./Sidebar";
+import { calculateAQIFromComponents, getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
+import { getCurrentUserLocation } from "./geolocationUtils";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -21,24 +23,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow
 });
 
-const PM25_BREAKPOINTS = [
-  { C_low: 0, C_high: 12, I_low: 0, I_high: 50 },
-  { C_low: 12.1, C_high: 35.4, I_low: 51, I_high: 100 },
-  { C_low: 35.5, C_high: 55.4, I_low: 101, I_high: 150 },
-  { C_low: 55.5, C_high: 150.4, I_low: 151, I_high: 200 },
-  { C_low: 150.5, C_high: 250.4, I_low: 201, I_high: 300 },
-  { C_low: 250.5, C_high: 500.4, I_low: 301, I_high: 500 },
-];
-
-const PM10_BREAKPOINTS = [
-  { C_low: 0, C_high: 54, I_low: 0, I_high: 50 },
-  { C_low: 55, C_high: 154, I_low: 51, I_high: 100 },
-  { C_low: 155, C_high: 254, I_low: 101, I_high: 150 },
-  { C_low: 255, C_high: 354, I_low: 151, I_high: 200 },
-  { C_low: 355, C_high: 424, I_low: 201, I_high: 300 },
-  { C_low: 425, C_high: 604, I_low: 301, I_high: 500 },
-];
-
 const DEFAULT_CENTER = [18.5204, 73.8567]; // Default: Pune
 const DEFAULT_ZOOM = 13;
 const SEARCH_TARGET_ZOOM = DEFAULT_ZOOM;
@@ -47,24 +31,196 @@ const SEARCH_EASE_LINEARITY = 0.25;
 const TILE_WAIT_TIMEOUT = 3500; // ms
 const MOVE_WAIT_TIMEOUT = 2500; // ms
 const RESULTS_BOUNDS_PADDING = 40;
+const OWM_SEARCH_LIMIT = 8;
+const NOMINATIM_SEARCH_LIMIT = 10;
+const MAX_SEARCH_RESULTS = 8;
 
-const calculateAQI = (concentration, breakpoints) => {
-  for (let bp of breakpoints) {
-    if (bp.C_low <= concentration && concentration <= bp.C_high) {
-      return Math.round(
-        ((bp.I_high - bp.I_low) / (bp.C_high - bp.C_low)) *
-          (concentration - bp.C_low) +
-          bp.I_low
+const normalizeText = (value = "") => value
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-z0-9,\s]/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const splitTokens = (value = "") => normalizeText(value)
+  .split(/[,\s]+/)
+  .filter(Boolean);
+
+const levenshteinDistance = (a = "", b = "") => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const matrix = Array.from({ length: rows }, () => new Array(cols).fill(0));
+
+  for (let i = 0; i < rows; i += 1) matrix[i][0] = i;
+  for (let j = 0; j < cols; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
       );
     }
   }
-  return null;
+
+  return matrix[a.length][b.length];
+};
+
+const similarityScore = (left = "", right = "") => {
+  const a = normalizeText(left);
+  const b = normalizeText(right);
+  if (!a || !b) return 0;
+  const maxLen = Math.max(a.length, b.length);
+  if (!maxLen) return 0;
+  return 1 - (levenshteinDistance(a, b) / maxLen);
+};
+
+const buildSearchVariants = (rawQuery) => {
+  const cleaned = rawQuery.replace(/\s+/g, " ").trim();
+  const normalized = normalizeText(cleaned);
+  const tokens = splitTokens(normalized);
+  const variants = new Set();
+
+  if (cleaned) variants.add(cleaned);
+
+  // Handles queries like "city state" without comma by trying likely splits.
+  if (!cleaned.includes(",") && tokens.length >= 2) {
+    const splitCandidates = Array.from(new Set([
+      1,
+      Math.floor(tokens.length / 2),
+      tokens.length - 1,
+    ])).filter((splitIndex) => splitIndex > 0 && splitIndex < tokens.length);
+
+    for (const splitIndex of splitCandidates) {
+      const cityPart = tokens.slice(0, splitIndex).join(" ");
+      const regionPart = tokens.slice(splitIndex).join(" ");
+      if (cityPart && regionPart) {
+        variants.add(`${cityPart}, ${regionPart}`);
+      }
+    }
+  }
+
+  return Array.from(variants);
+};
+
+const buildFallbackVariant = (rawQuery) => {
+  const tokens = splitTokens(rawQuery);
+  const primary = tokens[0] || "";
+  if (primary.length < 4) return "";
+  return primary.slice(0, -1);
+};
+
+const mapOpenWeatherResult = (item) => {
+  const lat = Number(item.lat);
+  const lon = Number(item.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  return {
+    source: "openweather",
+    lat,
+    lon,
+    name: item.name || "",
+    state: item.state || "",
+    country: item.country || "",
+    importance: 0,
+  };
+};
+
+const mapNominatimResult = (item) => {
+  const lat = Number(item.lat);
+  const lon = Number(item.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  const address = item.address || {};
+  const name = address.city
+    || address.town
+    || address.village
+    || address.hamlet
+    || address.municipality
+    || address.county
+    || address.state
+    || address.country
+    || item.name
+    || (item.display_name || "").split(",")[0]
+    || "";
+
+  const state = address.state
+    || address.state_district
+    || address.region
+    || address.county
+    || "";
+
+  const country = address.country || "";
+
+  return {
+    source: "nominatim",
+    lat,
+    lon,
+    name,
+    state,
+    country,
+    importance: Number(item.importance) || 0,
+  };
+};
+
+const scoreCandidate = (candidate, rawQuery) => {
+  const normalizedQuery = normalizeText(rawQuery);
+  if (!normalizedQuery) return 0;
+
+  const queryTokens = splitTokens(normalizedQuery);
+  const queryParts = normalizedQuery.split(",").map((part) => part.trim()).filter(Boolean);
+  const hasComma = queryParts.length > 1;
+  const queryName = hasComma ? queryParts[0] : normalizedQuery;
+  const queryRegion = hasComma ? queryParts.slice(1).join(" ") : "";
+
+  const name = normalizeText(candidate.name);
+  const state = normalizeText(candidate.state);
+  const country = normalizeText(candidate.country);
+  const combined = normalizeText([candidate.name, candidate.state, candidate.country].filter(Boolean).join(" "));
+
+  let score = 0;
+
+  if (name === normalizedQuery || combined === normalizedQuery) score += 120;
+  if (name.startsWith(queryName)) score += 35;
+  if (combined.startsWith(normalizedQuery)) score += 65;
+  if (combined.includes(normalizedQuery)) score += 40;
+
+  const matchedTokens = queryTokens.filter((token) => combined.includes(token)).length;
+  if (queryTokens.length) score += (matchedTokens / queryTokens.length) * 60;
+
+  score += Math.max(0, similarityScore(name, queryName)) * 55;
+
+  if (queryRegion) {
+    if (state.includes(queryRegion) || country.includes(queryRegion)) {
+      score += 45;
+    } else {
+      score -= 20;
+    }
+  } else if (!hasComma && queryTokens.length > 1) {
+    const possibleRegion = queryTokens[queryTokens.length - 1];
+    const probableName = queryTokens.slice(0, -1).join(" ");
+    score += Math.max(0, similarityScore(name, probableName)) * 25;
+    if (possibleRegion && (state.includes(possibleRegion) || country.includes(possibleRegion))) {
+      score += 20;
+    }
+  }
+
+  if (candidate.source === "openweather") score += 5;
+  score += Math.max(0, Math.min(1, candidate.importance)) * 20;
+
+  return score;
 };
 
 const MapView = ({city}) => {
   const [location, setLocation] = useState(null);
   const [airQuality, setAirQuality] = useState(null);
-  const [apiAQI, setApiAQI] = useState(null);
   const [error, setError] = useState(null);
   const [searchCity, setSearchCity] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -79,6 +235,8 @@ const MapView = ({city}) => {
   const pendingSearchRef = useRef(null);
   const isSearchAnimatingRef = useRef(false);
   const searchSequenceRef = useRef(0);
+  const searchRequestSeqRef = useRef(0);
+  const searchCacheRef = useRef(new Map());
   const searchMarkerIcon = useMemo(() => (
     L.divIcon({
       className: "search-marker",
@@ -105,23 +263,24 @@ const MapView = ({city}) => {
 
   // ✅ Get User's Current Location
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          setLocation({ lat, lon });
-          setLoading(false);
-        },
-        (err) => {
-          setError(err.message);
-          setLoading(false);
-        }
-      );
-    } else {
-      setError("Geolocation is not supported by your browser.");
-      setLoading(false);
-    }
+    let isMounted = true;
+
+    getCurrentUserLocation()
+      .then(({ lat, lon }) => {
+        if (!isMounted) return;
+        setLocation({ lat, lon });
+        setError(null);
+        setLoading(false);
+      })
+      .catch((geoError) => {
+        if (!isMounted) return;
+        setError(geoError.message || "Unable to access your location.");
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // ✅ Fetch Air Quality Data with useCallback to prevent recreating on every render
@@ -138,13 +297,13 @@ const MapView = ({city}) => {
       }
 
       const components = dataPoint.components;
-      const apiAQIValue = dataPoint.main?.aqi ?? null;
-      const aqiPm25 = calculateAQI(components.pm2_5 || 0, PM25_BREAKPOINTS);
-      const aqiPm10 = calculateAQI(components.pm10 || 0, PM10_BREAKPOINTS);
-      const calculatedAQI = Math.max(aqiPm25 ?? 0, aqiPm10 ?? 0);
+      const calculatedAQI = calculateAQIFromComponents(components);
+      if (!Number.isFinite(calculatedAQI)) {
+        setError("Unable to calculate AQI from pollutant data.");
+        return;
+      }
 
       setcalAQI(calculatedAQI);
-      setApiAQI(apiAQIValue);
       setAirQuality({ lat, lon, aqi: calculatedAQI });
       setTotalData(components);
       console.log("Setpm25 " + components.pm2_5);
@@ -235,63 +394,106 @@ const MapView = ({city}) => {
   }, [waitForTiles, waitForMoveEnd]);
 
   const formatResultLabel = useCallback((result) => {
-    const parts = [result.name, result.state].filter(Boolean);
-    if (parts.length === 1 && result.country) {
-      parts.push(result.country);
-    }
+    const parts = [result.name, result.state, result.country].filter(Boolean);
     return parts.join(", ");
   }, []);
 
   const dedupeResults = useCallback((results) => {
     const seen = new Set();
     return results.filter((result) => {
-      const name = (result.name || "").toLowerCase();
-      const state = (result.state || "").toLowerCase();
-      const country = (result.country || "").toLowerCase();
-      const key = state ? `${name}|${state}` : `${name}|${country}`;
+      const name = normalizeText(result.name || "");
+      const state = normalizeText(result.state || "");
+      const country = normalizeText(result.country || "");
+      const lat = Number(result.lat).toFixed(3);
+      const lon = Number(result.lon).toFixed(3);
+      const key = `${name}|${state}|${country}|${lat}|${lon}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
   }, []);
 
-  const filterResultsForQuery = useCallback((results, query) => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return results;
+  const rankResults = useCallback((results, query) => {
+    if (!results.length) return [];
 
-    const hasComma = normalized.includes(",");
-    if (hasComma) {
-      const [cityPart, regionPart] = normalized
-        .split(",")
-        .map((part) => part.trim())
+    const ranked = results
+      .map((result) => ({
+        ...result,
+        score: scoreCandidate(result, query),
+      }))
+      .sort((left, right) => right.score - left.score);
+
+    const strong = ranked.filter((result) => result.score >= 20);
+    const selected = strong.length ? strong : ranked;
+    return selected.slice(0, MAX_SEARCH_RESULTS);
+  }, []);
+
+  const fetchOpenWeatherCandidates = useCallback(async (query) => {
+    if (!query) return [];
+
+    try {
+      const response = await axios.get(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=${OWM_SEARCH_LIMIT}&appid=${memoizedApiKey}`,
+        { timeout: 6000 }
+      );
+
+      return (response.data || [])
+        .map(mapOpenWeatherResult)
         .filter(Boolean);
+    } catch (fetchError) {
+      console.error("OpenWeather geocoding error:", fetchError);
+      return [];
+    }
+  }, [memoizedApiKey]);
 
-      if (!cityPart) return results;
+  const fetchNominatimCandidates = useCallback(async (query) => {
+    if (!query) return [];
 
-      return results.filter((result) => {
-        const name = (result.name || "").toLowerCase();
-        const state = (result.state || "").toLowerCase();
-        const country = (result.country || "").toLowerCase();
-        const cityOk = name.includes(cityPart);
-        if (!regionPart) return cityOk;
-        return cityOk && (state.includes(regionPart) || country.includes(regionPart));
-      });
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=en&limit=${NOMINATIM_SEARCH_LIMIT}&q=${encodeURIComponent(query)}`,
+        { timeout: 7000 }
+      );
+
+      return (response.data || [])
+        .map(mapNominatimResult)
+        .filter(Boolean);
+    } catch (fetchError) {
+      console.error("Nominatim geocoding error:", fetchError);
+      return [];
+    }
+  }, []);
+
+  const searchGeocodingCandidates = useCallback(async (query) => {
+    const variants = buildSearchVariants(query);
+    const searchTasks = variants.flatMap((variant) => ([
+      fetchOpenWeatherCandidates(variant),
+      fetchNominatimCandidates(variant),
+    ]));
+
+    const settledResults = await Promise.allSettled(searchTasks);
+    let mergedResults = settledResults
+      .filter((result) => result.status === "fulfilled")
+      .flatMap((result) => result.value || []);
+
+    // Retry with a shorter token for typo-heavy inputs.
+    if (!mergedResults.length) {
+      const fallbackVariant = buildFallbackVariant(query);
+      if (fallbackVariant) {
+        const fallbackSettled = await Promise.allSettled([
+          fetchOpenWeatherCandidates(fallbackVariant),
+          fetchNominatimCandidates(fallbackVariant),
+        ]);
+
+        mergedResults = fallbackSettled
+          .filter((result) => result.status === "fulfilled")
+          .flatMap((result) => result.value || []);
+      }
     }
 
-    const tokens = normalized
-      .split(/\s+/)
-      .filter(Boolean);
-
-    if (tokens.length <= 1) return results;
-
-    return results.filter((result) => {
-      const haystack = [result.name, result.state, result.country]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return tokens.every((token) => haystack.includes(token));
-    });
-  }, []);
+    const dedupedResults = dedupeResults(mergedResults);
+    return rankResults(dedupedResults, query);
+  }, [dedupeResults, fetchNominatimCandidates, fetchOpenWeatherCandidates, rankResults]);
 
   const handleResultSelect = useCallback(async (result) => {
     const lat = Number(result.lat);
@@ -341,28 +543,37 @@ const MapView = ({city}) => {
     });
   }, [mapReady, searchResults]);
   // ✅ Fetch City Coordinates with debouncing
-  const fetchCityCoordinates = useCallback(async () => {
-    if (!searchCity) return;
+  const fetchCityCoordinates = useCallback(async (queryInput) => {
+    const query = (queryInput || "").trim();
+    if (!query) return;
+    const cacheKey = normalizeText(query);
+
+    const requestSeq = searchRequestSeqRef.current + 1;
+    searchRequestSeqRef.current = requestSeq;
 
     setSearching(true);
     setError(null);
     setSearchResults([]);
     try {
-      const response = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchCity)}&limit=5&appid=${memoizedApiKey}`
-      );
+      let results = searchCacheRef.current.get(cacheKey);
+      if (!results) {
+        results = await searchGeocodingCandidates(query);
+        searchCacheRef.current.set(cacheKey, results);
+        if (searchCacheRef.current.size > 60) {
+          const oldestKey = searchCacheRef.current.keys().next().value;
+          searchCacheRef.current.delete(oldestKey);
+        }
+      }
 
-      const results = dedupeResults(response.data || []);
+      if (searchRequestSeqRef.current !== requestSeq) return;
+
       if (results.length > 0) {
-        const filteredResults = filterResultsForQuery(results, searchCity);
-        const finalResults = filteredResults.length > 0 ? filteredResults : results;
-
-        if (finalResults.length === 1) {
-          await handleResultSelect(finalResults[0]);
+        if (results.length === 1) {
+          await handleResultSelect(results[0]);
           return;
         }
 
-        setSearchResults(finalResults);
+        setSearchResults(results);
       } else {
         setError("City not found. Please try again.");
       }
@@ -370,49 +581,30 @@ const MapView = ({city}) => {
       console.error("Error fetching city coordinates:", error);
       setError("Failed to fetch city coordinates. Please try again.");
     } finally {
-      setSearching(false);
+      if (searchRequestSeqRef.current === requestSeq) {
+        setSearching(false);
+      }
     }
-  }, [searchCity, memoizedApiKey, filterResultsForQuery, handleResultSelect, dedupeResults]);
+  }, [handleResultSelect, searchGeocodingCandidates]);
+
+  useEffect(() => {
+    const externalQuery = (city || "").trim();
+    if (!externalQuery) return;
+    setSearchCity(externalQuery);
+    fetchCityCoordinates(externalQuery);
+  }, [city, fetchCityCoordinates]);
 
   // 🎨 Define Circle Colors Based on AQI Levels
-  const getColor = (aqi) => {
-    if (aqi < 50) return "#10B981"; // Good
-    if (aqi < 100) return "#FBBF24"; // Moderate
-    if (aqi < 150) return "#F59E0B"; // Unhealthy
-    if (aqi >= 150) return "#EF4444"; // Very Unhealthy
-    return "#64748B"; // Default
-  };
+  const getColor = (aqi) => getAQIMetadata(aqi).color;
   
   // Get AQI Badge Variant
-  const getAQIBadgeVariant = (aqi) => {
-    if (aqi < 50) return "good";
-    if (aqi < 100) return "moderate";
-    if (aqi < 150) return "unhealthy";
-    if (aqi >= 150) return "very-unhealthy";
-    return "default";
-  };
+  const getAQIBadgeVariant = (aqi) => getAQIMetadata(aqi).variant;
   
   // Get AQI Label
-  const getAQILabel = (aqi) => {
-    if (aqi < 50) return "Good";
-    if (aqi < 100) return "Moderate";
-    if (aqi < 150) return "Unhealthy";
-    if (aqi >= 150) return "Very Unhealthy";
-    return "Unknown";
-  };
+  const getAQILabel = (aqi) => getAQIMetadata(aqi).label;
 
   // 🛠️ Suggestions for Air Quality Improvement
-  const getRecommendations = (aqi) => {
-    if (aqi < 50) {
-      return "Air quality is good. Maintain greenery and reduce vehicle emissions.";
-    } else if (aqi < 100) {
-      return "Moderate air quality. Consider using air purifiers and reducing outdoor activities.";
-    } else if (aqi < 150) {
-      return "Unhealthy air quality. Elder,childern and people with lung disease may be affected";
-    } else {
-      return "Unhealthy air quality! Avoid outdoor activities, wear masks, and reduce fossil fuel use.";
-    }
-  };
+  const getRecommendations = (aqi) => getAQIRecommendation(aqi);
 
   return (
     <>
@@ -424,7 +616,7 @@ const MapView = ({city}) => {
             subtitle="Real-time AQI monitoring with location-based data"
             icon="🗺️"
             action={
-              calAQI && (
+              calAQI !== null && (
                 <Badge variant={getAQIBadgeVariant(calAQI)} size="lg">
                   AQI: {calAQI} - {getAQILabel(calAQI)}
                 </Badge>
@@ -439,20 +631,27 @@ const MapView = ({city}) => {
                 onChange={(e) => {
                   setSearchCity(e.target.value);
                   setSearchResults([]);
+                  setError(null);
                 }}
-                onKeyPress={(e) => e.key === 'Enter' && fetchCityCoordinates()}
-                placeholder="Search city, state (e.g., City, State)"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    fetchCityCoordinates(searchCity);
+                  }
+                }}
+                placeholder="Search city/state/country"
                 className="search-input"
               />
               <button
-                onClick={fetchCityCoordinates}
+                onClick={() => fetchCityCoordinates(searchCity)}
                 className="search-button"
                 disabled={searching || !searchCity}
               >
                 {searching ? '🔍' : '🔎'} Search
               </button>
             </div>
-
+            <p className="search-helper-text">
+              Search by city, city plus state, or country. If multiple matches appear, select one from the list or map.
+            </p>
             {searchResults.length > 0 && (
               <div className="search-results">
                 {searchResults.map((result) => (
@@ -589,7 +788,7 @@ const MapView = ({city}) => {
       {/* Cigarette Equivalent */}
       {location && totalData && (
         <div className="dashboard-bottom">
-          <Cigrate location={location} totalData={totalData} apiAQI={apiAQI} />
+          <Cigrate location={location} totalData={totalData} calculatedAQI={calAQI} />
         </div>
       )}
     </>
