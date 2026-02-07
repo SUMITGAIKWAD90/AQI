@@ -2,28 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import Badge from "./Badge";
 import Loader from "./Loader";
 import "./Report.css";
-
-const pm25Breakpoints = [0, 12, 35, 55, 150, 250, 500];
-const pm10Breakpoints = [0, 50, 150, 250, 350, 420, 600];
-
-const calculateAQI = (concentration, breakpoints) => {
-  let aqi = 0;
-  for (let i = 0; i < breakpoints.length - 1; i++) {
-    if (concentration <= breakpoints[i + 1]) {
-      aqi = (i + 1) * 50;
-      break;
-    }
-  }
-  return aqi;
-};
-
-const getAQIBadgeVariant = (aqi) => {
-  if (aqi <= 50) return "good";
-  if (aqi <= 100) return "moderate";
-  if (aqi <= 150) return "unhealthy";
-  if (aqi <= 200) return "very-unhealthy";
-  return "hazardous";
-};
+import { calculateAQIFromComponents, getAQIMetadata } from "./airQualityUtils";
 
 const Report = (props) => {
   const [forecast, setForecast] = useState([]);
@@ -38,15 +17,13 @@ const Report = (props) => {
       );
       const data = await res.json();
 
-      const processedData = data.list.map((entry) => {
+      const processedData = (data.list || []).map((entry) => {
         const pollutants = entry.components;
-        const aqiPm25 = calculateAQI(pollutants.pm2_5 || 0, pm25Breakpoints);
-        const aqiPm10 = calculateAQI(pollutants.pm10 || 0, pm10Breakpoints);
-        const calculatedAQI = Math.max(aqiPm25, aqiPm10);
+        const calculatedAQI = calculateAQIFromComponents(pollutants);
 
         return {
           ...entry,
-          calculatedAQI,
+          calculatedAQI: Number.isFinite(calculatedAQI) ? calculatedAQI : 0,
         };
       });
 
@@ -102,7 +79,7 @@ const Report = (props) => {
                   <td className="value-cell">{entry.components.pm2_5.toFixed(1)} µg/m³</td>
                   <td className="value-cell">{entry.components.pm10.toFixed(1)} µg/m³</td>
                   <td className="badge-cell">
-                    <Badge variant={getAQIBadgeVariant(entry.calculatedAQI)} size="sm">
+                    <Badge variant={getAQIMetadata(entry.calculatedAQI).variant} size="sm">
                       {entry.calculatedAQI}
                     </Badge>
                   </td>
