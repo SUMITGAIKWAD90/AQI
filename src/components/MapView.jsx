@@ -12,8 +12,9 @@ import Cigrate from "./Cigrate";
 import Loader from "./Loader";
 import "./MapView.css";
 import Sidebar from "./Sidebar";
-import { calculateAQIFromComponents, getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
+import { getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
 import { getCurrentUserLocation } from "./geolocationUtils";
+import { fetchCurrentAQIByCoords, OPENWEATHER_API_KEY } from "./openWeatherApi";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -218,7 +219,7 @@ const scoreCandidate = (candidate, rawQuery) => {
   return score;
 };
 
-const MapView = ({city}) => {
+const MapView = ({ city, onLocationChange }) => {
   const [location, setLocation] = useState(null);
   const [airQuality, setAirQuality] = useState(null);
   const [error, setError] = useState(null);
@@ -246,11 +247,10 @@ const MapView = ({city}) => {
     })
   ), []);
 
-  const apiKey = "d20a1d1d93a48db41372a0393ad30a84"; // OpenWeather API Key
   // setSearchCity(props.transcript); 
 
   // ✅ Memoize API key to prevent re-renders
-  const memoizedApiKey = useMemo(() => apiKey, []);
+  const memoizedApiKey = useMemo(() => OPENWEATHER_API_KEY, []);
 
   const tileEventHandlers = useMemo(() => ({
     loading: () => {
@@ -286,18 +286,14 @@ const MapView = ({city}) => {
   // ✅ Fetch Air Quality Data with useCallback to prevent recreating on every render
   const fetchAirQuality = useCallback(async (lat, lon) => {
     try {
-      const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${memoizedApiKey}`
-      );
-
-      const dataPoint = response?.data?.list?.[0];
+      const dataPoint = await fetchCurrentAQIByCoords(lat, lon);
       if (!dataPoint) {
         setError("No air quality data available.");
         return;
       }
 
-      const components = dataPoint.components;
-      const calculatedAQI = calculateAQIFromComponents(components);
+      const components = dataPoint?.components || {};
+      const calculatedAQI = Number(dataPoint?.calculatedAQI);
       if (!Number.isFinite(calculatedAQI)) {
         setError("Unable to calculate AQI from pollutant data.");
         return;
@@ -310,8 +306,9 @@ const MapView = ({city}) => {
       console.log("Components Data: ", components);
     } catch (error) {
       console.error("Error fetching air quality data:", error);
+      setError("Failed to fetch air quality data.");
     }
-  }, [memoizedApiKey]);
+  }, []);
 
   // ✅ Fetch AQI when location changes
   useEffect(() => {
@@ -319,6 +316,11 @@ const MapView = ({city}) => {
       fetchAirQuality(location.lat, location.lon);
     }
   }, [location, fetchAirQuality]);
+
+  useEffect(() => {
+    if (!location || typeof onLocationChange !== "function") return;
+    onLocationChange(location);
+  }, [location, onLocationChange]);
 
   const flyToLocation = useCallback((lat, lon) => {
     const map = mapRef.current;
@@ -796,3 +798,5 @@ const MapView = ({city}) => {
 };
 
 export default MapView;
+
+
