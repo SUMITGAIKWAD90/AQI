@@ -1,7 +1,8 @@
+import { OPENWEATHER_API_KEY } from "./openWeatherApi";
+
 export const fetchCityCoordinates = async (city) => {
     try {
-      const apiKey = "d20a1d1d93a48db41372a0393ad30a84"; // Replace with your API key
-      const res = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${apiKey}`);
+      const res = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${OPENWEATHER_API_KEY}`);
       const data = await res.json();
   
       if (data.length > 0) {

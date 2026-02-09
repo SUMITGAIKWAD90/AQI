@@ -10,8 +10,9 @@ import Badge from "./Badge";
 import Card from "./Card";
 import Loader from "./Loader";
 import "./SafeRote.css";
-import { calculateAQIFromComponents, getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
+import { getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
 import { getCurrentUserLocation } from "./geolocationUtils";
+import { fetchCurrentAQIByCoords, OPENWEATHER_API_KEY } from "./openWeatherApi";
 
 // Fix for default marker icons in Leaflet
 /* eslint-disable no-underscore-dangle */
@@ -323,7 +324,7 @@ const SafeRoute = () => {
   const [mapReady, setMapReady] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
 
-  const apiKey = useMemo(() => "d20a1d1d93a48db41372a0393ad30a84", []);
+  const apiKey = useMemo(() => OPENWEATHER_API_KEY, []);
   const mapRef = useRef(null);
   const searchCacheRef = useRef(new Map());
   const searchRequestSeqRef = useRef({ source: 0, destination: 0 });
@@ -657,13 +658,8 @@ const SafeRoute = () => {
 
   const getAQI = async (lat, lon) => {
     try {
-      const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`,
-        { timeout: 7000 }
-      );
-
-      const components = response.data?.list?.[0]?.components;
-      const calculatedAQI = calculateAQIFromComponents(components);
+      const row = await fetchCurrentAQIByCoords(lat, lon);
+      const calculatedAQI = Number(row?.calculatedAQI);
       if (Number.isFinite(calculatedAQI)) return calculatedAQI;
       return ROUTE_FALLBACK_AQI;
     } catch (aqiError) {
