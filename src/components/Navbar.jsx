@@ -21,7 +21,7 @@ const Navbar = () => {
             </Link>
           </li>
           <li className="nav-item">
-            <Link to="https://wildfire-monitoring.onrender.com" className="nav-link">
+            <Link to="https://wildfire-monitoring-2.onrender.com/" className="nav-link">
               <span className="nav-icon">🔥</span>
               Wildfire Monitor
             </Link>
