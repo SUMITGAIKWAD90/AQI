@@ -1,6 +1,6 @@
-import { Flame, LayoutGrid, Wind } from "lucide-react";
+import { Cpu, Flame, LayoutGrid, Wind } from "lucide-react";
 import { motion } from "motion/react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -24,10 +24,23 @@ const Navbar = () => {
 
         <ul className="nav-menu">
           <li className="nav-item">
-            <Link to="/" className="nav-link active">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            >
               <LayoutGrid size={18} className="nav-icon" />
               Dashboard
-            </Link>
+            </NavLink>
+          </li>
+          <li className="nav-item">
+            <NavLink
+              to="/travel-buddy"
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            >
+              <Cpu size={18} className="nav-icon" />
+              Travel Buddy
+            </NavLink>
           </li>
           <li className="nav-item">
             <Link to="https://wildfire-monitoring-2.onrender.com/" className="nav-link">

@@ -1,9 +1,11 @@
 import './App.css';
 import { useState } from "react";
+import { Route, Routes } from "react-router-dom";
 import AirQualityChart from './components/AirQualityChart';
 import MapView from './components/MapView';
 import Navbar from './components/Navbar';
 import SafeRoute from './components/SafeRoute';
+import TravelBuddy from './components/TravelBuddy';
 
 function App() {
   const [selectedLocation, setSelectedLocation] = useState({
@@ -15,18 +17,26 @@ function App() {
     <div className='App'>
       <Navbar/>
       <div className="app-container">
-        <div className="dashboard-layout">
-          {/* Main Map and Pollutants Section */}
-          <MapView onLocationChange={setSelectedLocation} />
-          
-          {/* Charts Section */}
-          <div className="dashboard-bottom">
-            <AirQualityChart lat={selectedLocation?.lat} lon={selectedLocation?.lon} />
-          </div>
-          
-          {/* Safe Route Section */}
-          <SafeRoute/>
-        </div>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="dashboard-layout">
+                {/* Main Map and Pollutants Section */}
+                <MapView onLocationChange={setSelectedLocation} />
+
+                {/* Charts Section */}
+                <div className="dashboard-bottom">
+                  <AirQualityChart lat={selectedLocation?.lat} lon={selectedLocation?.lon} />
+                </div>
+
+                {/* Safe Route Section */}
+                <SafeRoute/>
+              </div>
+            }
+          />
+          <Route path="/travel-buddy" element={<TravelBuddy />} />
+        </Routes>
       </div>
     </div>
   );
