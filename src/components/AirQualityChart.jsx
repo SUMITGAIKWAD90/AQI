@@ -7,6 +7,7 @@ import {
   Title,
   Tooltip,
 } from "chart.js";
+import { LineChart } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import "./AirQualityChart.css";
@@ -257,10 +258,10 @@ const AirQualityChart = ({ lat, lon }) => {
         display: false,
       },
       tooltip: {
-        backgroundColor: "rgba(15, 23, 42, 0.96)",
-        titleColor: "#F8FAFC",
-        bodyColor: "#E2E8F0",
-        borderColor: "rgba(148, 163, 184, 0.25)",
+        backgroundColor: "rgba(255, 255, 255, 0.98)",
+        titleColor: "#0F172A",
+        bodyColor: "#334155",
+        borderColor: "rgba(15, 23, 42, 0.12)",
         borderWidth: 1,
         padding: 12,
         displayColors: false,
@@ -287,7 +288,7 @@ const AirQualityChart = ({ lat, lon }) => {
           drawBorder: false,
         },
         ticks: {
-          color: "#94A3B8",
+          color: "#64748B",
           maxRotation: 0,
           autoSkip: true,
           maxTicksLimit: 12,
@@ -301,11 +302,11 @@ const AirQualityChart = ({ lat, lon }) => {
         beginAtZero: true,
         suggestedMax,
         grid: {
-          color: "rgba(148, 163, 184, 0.14)",
+          color: "rgba(15, 23, 42, 0.08)",
           drawBorder: false,
         },
         ticks: {
-          color: "#94A3B8",
+          color: "#64748B",
           font: {
             size: 11,
           },
@@ -313,7 +314,7 @@ const AirQualityChart = ({ lat, lon }) => {
         title: {
           display: true,
           text: "AQI",
-          color: "#CBD5E1",
+          color: "#475569",
           font: {
             size: 12,
             weight: "500",
@@ -333,7 +334,7 @@ const AirQualityChart = ({ lat, lon }) => {
     <Card
       title="Historical AQI Trends"
       subtitle={`${meta.startDate || "N/A"} to ${meta.endDate || "N/A"} | ${displayLat.toFixed(3)}, ${displayLon.toFixed(3)}`}
-      icon="Chart"
+      icon={<LineChart size={20} />}
     >
       <div className="aqi-chart-layout">
         <div className="chart-meta-row">

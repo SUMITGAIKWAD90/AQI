@@ -1,97 +1,62 @@
 .App {
   min-height: 100vh;
-  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
+  background: transparent;
 }
 
 .app-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  padding: var(--spacing-xl) 0 var(--spacing-2xl);
 }
 
-/* Main Dashboard Layout */
 .dashboard-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
-  max-width: 1920px;
+  gap: var(--spacing-xl);
+  width: min(1320px, 94vw);
   margin: 0 auto;
-  width: 100%;
 }
 
-/* Top Section - Map and Pollutants */
 .dashboard-top {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
   gap: var(--spacing-lg);
+  align-items: stretch;
   min-height: 600px;
 }
 
-/* Bottom Section - Charts */
 .dashboard-bottom {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--spacing-lg);
 }
 
-/* Card Component */
+/* Legacy card class support */
 .card {
-  background: var(--bg-secondary);
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
 }
 
-.card:hover {
-  box-shadow: var(--shadow-xl);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.card-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.card-body {
-  color: var(--text-secondary);
-}
-
-/* Responsive Design */
 @media (max-width: 1200px) {
   .dashboard-top {
     grid-template-columns: 1fr;
-  }
-  
-  .dashboard-bottom {
-    grid-template-columns: 1fr;
+    min-height: auto;
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-layout {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
+  .app-container {
+    padding: var(--spacing-lg) 0 var(--spacing-2xl);
   }
-  
-  .card {
-    padding: var(--spacing-lg);
+
+  .dashboard-layout {
+    width: min(92vw, 1200px);
+    gap: var(--spacing-lg);
   }
 }

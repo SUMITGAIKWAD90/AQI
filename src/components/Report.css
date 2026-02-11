@@ -1,8 +1,8 @@
 .report-container {
   margin-top: var(--spacing-lg);
   padding: var(--spacing-lg);
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
 
@@ -12,14 +12,14 @@
 }
 
 .report-title {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.5rem 0;
 }
 
 .report-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   margin: 0;
 }
@@ -28,12 +28,13 @@
   max-height: 400px;
   overflow-y: auto;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
 }
 
 .forecast-table {
   width: 100%;
   border-collapse: collapse;
+  background: #ffffff;
 }
 
 .forecast-table thead {
@@ -46,10 +47,10 @@
 .forecast-table th {
   padding: var(--spacing-md);
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-primary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .forecast-table tbody tr {
@@ -57,14 +58,14 @@
 }
 
 .forecast-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(15, 23, 42, 0.03);
 }
 
 .forecast-table td {
   padding: var(--spacing-md);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .date-cell {
@@ -73,7 +74,7 @@
 }
 
 .value-cell {
-  font-family: 'Courier New', monospace;
+  font-family: "Sora", monospace;
 }
 
 .badge-cell {
@@ -117,7 +118,7 @@
 }
 
 .forecast-table-wrapper::-webkit-scrollbar-thumb {
-  background: var(--surface-hover);
+  background: rgba(148, 163, 184, 0.5);
   border-radius: var(--radius-sm);
 }
 
@@ -125,7 +126,7 @@
   .forecast-table {
     font-size: 0.8rem;
   }
-  
+
   .forecast-table th,
   .forecast-table td {
     padding: var(--spacing-sm);

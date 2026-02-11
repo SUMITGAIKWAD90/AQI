@@ -1,3 +1,4 @@
+import { Fade } from "react-awesome-reveal";
 import Badge from "./Badge";
 import "./Sidebar.css";
 
@@ -42,29 +43,31 @@ const Sidebar = ({ totalData }) => {
       
       <div className="pollutant-list">
         {totalData ? (
-          Object.entries(totalData).map(([key, value], index) => {
-            const info = getPollutantInfo(key);
-            const level = getPollutantLevel(key, value);
-            
-            return (
-              <div key={index} className="pollutant-item">
-                <div className="pollutant-header">
-                  <span className="pollutant-icon">{info.icon}</span>
-                  <div className="pollutant-info">
-                    <h4 className="pollutant-name">{info.name}</h4>
-                    <p className="pollutant-key">{key.toUpperCase()}</p>
+          <Fade cascade damping={0.04} triggerOnce style={{ display: "contents" }}>
+            {Object.entries(totalData).map(([key, value], index) => {
+              const info = getPollutantInfo(key);
+              const level = getPollutantLevel(key, value);
+              
+              return (
+                <div key={index} className="pollutant-item">
+                  <div className="pollutant-header">
+                    <span className="pollutant-icon">{info.icon}</span>
+                    <div className="pollutant-info">
+                      <h4 className="pollutant-name">{info.name}</h4>
+                      <p className="pollutant-key">{key.toUpperCase()}</p>
+                    </div>
                   </div>
+                  <div className="pollutant-value">
+                    <span className="value-number">{value.toFixed(2)}</span>
+                    <span className="value-unit">{info.unit}</span>
+                  </div>
+                  <Badge variant={level.variant} size="sm">
+                    {level.label}
+                  </Badge>
                 </div>
-                <div className="pollutant-value">
-                  <span className="value-number">{value.toFixed(2)}</span>
-                  <span className="value-unit">{info.unit}</span>
-                </div>
-                <Badge variant={level.variant} size="sm">
-                  {level.label}
-                </Badge>
-              </div>
-            );
-          })
+              );
+            })}
+          </Fade>
         ) : (
           <div className="no-data">
             <p className="no-data-text">No air quality data available</p>
