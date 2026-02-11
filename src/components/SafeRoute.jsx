@@ -1,5 +1,6 @@
 ﻿import axios from "axios";
 import L from "leaflet";
+import { Route as RouteIcon } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -839,7 +840,7 @@ const SafeRoute = () => {
     <Card
       title="Safest Route Finder"
       subtitle="Air-quality-aware route scoring with detailed tradeoffs"
-      icon="Route"
+      icon={<RouteIcon size={20} />}
       action={bestRoute && bestRouteBadge ? (
         <Badge variant={bestRouteBadge.variant} size="lg">
           Best AQI: {Math.round(bestRoute.avgAqi)} ({bestRouteBadge.label})

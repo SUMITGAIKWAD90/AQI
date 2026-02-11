@@ -1,4 +1,4 @@
-﻿.route-finder {
+.route-finder {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
@@ -26,16 +26,18 @@
 }
 
 .input-label {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .route-input {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -48,24 +50,24 @@
 }
 
 .route-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  border-color: rgba(15, 118, 110, 0.45);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
 }
 
 .input-subtext {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   line-height: 1.4;
 }
 
 .input-action-button {
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(14, 165, 233, 0.35);
-  background: rgba(14, 165, 233, 0.12);
-  color: var(--primary-light);
-  font-size: 0.76rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(15, 118, 110, 0.32);
+  background: rgba(20, 184, 166, 0.12);
+  color: var(--primary-color);
+  font-size: 0.74rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -73,19 +75,19 @@
 }
 
 .input-action-button:hover:not(:disabled) {
-  background: rgba(14, 165, 233, 0.2);
-  border-color: rgba(14, 165, 233, 0.55);
+  background: rgba(20, 184, 166, 0.2);
+  border-color: rgba(15, 118, 110, 0.55);
 }
 
 .input-action-button.secondary {
-  border-color: rgba(16, 185, 129, 0.45);
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
+  border-color: rgba(234, 88, 12, 0.35);
+  background: rgba(249, 115, 22, 0.14);
+  color: var(--secondary-dark);
 }
 
 .input-action-button.secondary:hover:not(:disabled) {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(249, 115, 22, 0.2);
+  border-color: rgba(234, 88, 12, 0.55);
 }
 
 .input-action-button:disabled {
@@ -109,10 +111,10 @@
   gap: var(--spacing-sm);
   text-align: left;
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.58);
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
   color: var(--text-primary);
   font-size: 0.84rem;
   cursor: pointer;
@@ -120,8 +122,9 @@
 }
 
 .location-result-item:hover {
-  border-color: rgba(14, 165, 233, 0.55);
+  border-color: rgba(15, 118, 110, 0.35);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .location-result-name {
@@ -130,20 +133,21 @@
 
 .location-result-meta {
   color: var(--text-muted);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   white-space: nowrap;
 }
 
 .route-arrow {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
   padding: 0.45rem 0.9rem;
   align-self: center;
+  text-transform: uppercase;
 }
 
 .route-actions {
@@ -158,7 +162,6 @@
 .route-control-button {
   border: none;
   border-radius: var(--radius-md);
-  color: white;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -166,13 +169,14 @@
 }
 
 .route-button {
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--primary-color);
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: white;
 }
 
 .route-button:hover:not(:disabled) {
-  background: var(--primary-dark);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .route-button:disabled,
@@ -183,36 +187,37 @@
 }
 
 .route-swap-button {
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: rgba(148, 163, 184, 0.25);
+  padding: 0.85rem 1.2rem;
+  background: rgba(148, 163, 184, 0.18);
   border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--text-secondary);
 }
 
 .route-swap-button:hover:not(:disabled) {
-  background: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.28);
 }
 
 .route-error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.32);
-  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #b91c1c;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
 }
 
 .route-info {
-  background: var(--surface);
-  border-radius: var(--radius-md);
+  background: #ffffff;
+  border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
 .route-info-title {
-  font-size: 0.97rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-secondary);
   margin: 0;
@@ -220,7 +225,7 @@
 }
 
 .city-name {
-  color: var(--primary-light);
+  color: var(--primary-color);
   font-weight: 700;
 }
 
@@ -237,11 +242,11 @@
 }
 
 .summary-title {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #34d399;
+  color: #15803d;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   margin-bottom: 0.2rem;
 }
 
@@ -260,12 +265,13 @@
 
 .route-control-button {
   padding: 0.55rem 0.9rem;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 .route-control-button:hover:not(:disabled) {
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.1);
 }
 
 .route-legend-container {
@@ -283,31 +289,33 @@
 .route-legend-line {
   width: 30px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
 }
 
 .route-legend-text {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
 }
 
 .route-map-wrapper {
   height: 460px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--surface);
+  background: #ffffff;
   position: relative;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
 }
 
 .route-map-wrapper .leaflet-container {
   height: 100%;
   width: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   z-index: 1;
 }
 
 .route-map {
-  background: var(--surface) !important;
+  background: #ffffff !important;
 }
 
 .route-tooltip {
@@ -330,9 +338,9 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #0ea5e9;
+  background: var(--primary-color);
   border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 7px rgba(14, 165, 233, 0.22);
+  box-shadow: 0 0 0 7px rgba(20, 184, 166, 0.22);
 }
 
 .route-map-hint {
@@ -350,8 +358,8 @@
 .route-stat-card {
   width: 100%;
   text-align: left;
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
   transition: all 0.2s ease;
@@ -360,13 +368,14 @@
 }
 
 .route-stat-card:hover {
-  border-color: rgba(14, 165, 233, 0.45);
+  border-color: rgba(15, 118, 110, 0.35);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .route-stat-card.active {
-  border-color: rgba(14, 165, 233, 0.62);
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.14);
+  border-color: rgba(15, 118, 110, 0.55);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-header {
@@ -379,7 +388,7 @@
 .stat-route-indicator {
   width: 24px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
 }
 
 .stat-title {
@@ -407,9 +416,9 @@
 }
 
 .stat-value {
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .stat-meta {
@@ -444,14 +453,14 @@
 }
 
 .empty-icon {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.75);
-  border: 1px dashed rgba(148, 163, 184, 0.45);
+  color: rgba(100, 116, 139, 0.8);
+  border: 1px dashed rgba(148, 163, 184, 0.6);
   border-radius: var(--radius-full);
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
 }
 
 .empty-text {

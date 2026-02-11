@@ -1,9 +1,9 @@
 .pollutant-sidebar {
-  background: var(--bg-secondary);
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-subtle);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -13,11 +13,11 @@
 .sidebar-header {
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .sidebar-title {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.25rem 0;
@@ -25,10 +25,10 @@
 }
 
 .sidebar-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .pollutant-list {
@@ -40,8 +40,8 @@
 }
 
 .pollutant-item {
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
   transition: all 0.2s ease;
@@ -51,9 +51,9 @@
 }
 
 .pollutant-item:hover {
-  background: var(--surface-hover);
-  border-color: rgba(255, 255, 255, 0.1);
-  transform: translateX(2px);
+  border-color: rgba(15, 118, 110, 0.2);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .pollutant-header {
@@ -63,7 +63,7 @@
 }
 
 .pollutant-icon {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   line-height: 1;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .pollutant-name {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -81,24 +81,24 @@
 }
 
 .pollutant-key {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   margin: 0;
   line-height: 1.3;
-  font-family: 'Courier New', monospace;
+  font-family: "Sora", monospace;
 }
 
 .pollutant-value {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
-  padding: var(--spacing-sm) 0;
+  padding: 0.35rem 0;
 }
 
 .value-number {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--primary-color);
   line-height: 1;
 }
 
@@ -123,7 +123,7 @@
   font-size: 0.95rem;
   color: var(--text-secondary);
   margin: 0;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .no-data-hint {
@@ -142,12 +142,12 @@
 }
 
 .pollutant-list::-webkit-scrollbar-thumb {
-  background: var(--surface-hover);
+  background: rgba(148, 163, 184, 0.5);
   border-radius: var(--radius-sm);
 }
 
 @media (max-width: 1200px) {
   .pollutant-sidebar {
-    max-height: 500px;
+    max-height: 520px;
   }
 }

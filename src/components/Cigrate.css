@@ -6,8 +6,8 @@
 
 /* AQI Notification */
 .aqi-notification {
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(15, 118, 110, 0.2);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
 }
@@ -17,17 +17,18 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-md);
+  gap: var(--spacing-md);
 }
 
 .notification-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
 
 .notification-message {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
@@ -44,15 +45,21 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
 }
 
 .metric-icon {
-  font-size: 2rem;
-  line-height: 1;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--primary-color);
+  font-weight: 700;
 }
 
 .metric-content {
@@ -63,14 +70,14 @@
 }
 
 .metric-label {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 /* Cigarette Equivalence */
@@ -78,16 +85,21 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 146, 60, 0.1));
+  border: 1px solid rgba(249, 115, 22, 0.25);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
 }
 
 .equivalence-icon {
-  font-size: 2.5rem;
-  line-height: 1;
-  opacity: 0.8;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(249, 115, 22, 0.2);
+  color: var(--secondary-dark);
+  font-weight: 700;
 }
 
 .equivalence-content {
@@ -98,15 +110,15 @@
 }
 
 .equivalence-label {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .equivalence-value {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: #EF4444;
+  color: var(--secondary-dark);
   line-height: 1.2;
 }
 
@@ -142,8 +154,8 @@
 
 /* Prediction Button */
 .prediction-button {
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--secondary-color);
+  padding: 0.9rem 1.4rem;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   border: none;
   border-radius: var(--radius-md);
   color: white;
@@ -155,9 +167,8 @@
 }
 
 .prediction-button:hover {
-  background: var(--secondary-dark);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .prediction-button:active {
@@ -171,13 +182,13 @@
     flex-direction: column;
     text-align: center;
   }
-  
+
   .metric-icon,
   .equivalence-icon {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
-  
+
   .equivalence-value {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 }
