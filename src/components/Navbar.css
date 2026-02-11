@@ -1,25 +1,23 @@
-/* Modern Navbar Styling */
 .navbar {
-  background: var(--bg-secondary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0;
   position: sticky;
   top: 0;
   z-index: 1000;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .navbar-container {
-  max-width: 1920px;
+  width: min(1320px, 94vw);
   margin: 0 auto;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 1.1rem 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
 }
 
-/* Brand Section */
 .navbar-brand {
   display: flex;
   align-items: center;
@@ -27,118 +25,100 @@
 }
 
 .brand-icon {
-  font-size: 2.5rem;
-  filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.4));
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(15, 118, 110, 0.35));
+  border: 1px solid rgba(15, 118, 110, 0.25);
+  color: var(--primary-color);
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 2px;
 }
 
 .brand-title {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
   margin: 0;
-  background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .brand-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  font-weight: 400;
-  line-height: 1;
   margin: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-/* Navigation Menu */
 .nav-menu {
-  display: flex;
   list-style: none;
+  display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
   margin: 0;
   padding: 0;
 }
 
-.nav-item {
-  margin: 0;
-}
-
 .nav-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 0.95rem;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  transition: all 0.2s ease;
-  background: transparent;
   border: 1px solid transparent;
+  background: transparent;
+  transition: all 0.2s ease;
 }
 
 .nav-link:hover {
+  border-color: rgba(15, 118, 110, 0.2);
+  background: rgba(20, 184, 166, 0.12);
   color: var(--text-primary);
-  background: var(--surface-hover);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .nav-link.active {
-  color: var(--primary-light);
-  background: rgba(14, 165, 233, 0.1);
-  border-color: rgba(14, 165, 233, 0.3);
+  color: var(--primary-color);
+  background: rgba(20, 184, 166, 0.16);
+  border-color: rgba(15, 118, 110, 0.28);
 }
 
 .nav-icon {
-  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .navbar-container {
-    padding: var(--spacing-md) var(--spacing-lg);
-  }
-  
-  .brand-title {
-    font-size: 1.25rem;
-  }
-  
-  .brand-subtitle {
-    font-size: 0.7rem;
-  }
-  
-  .nav-menu {
-    gap: var(--spacing-xs);
-  }
-  
-  .nav-link {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 0.85rem;
-  }
-  
-  .nav-icon {
-    font-size: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .navbar-container {
+    padding: 0.9rem 0;
+  }
+
   .brand-subtitle {
     display: none;
   }
-  
+
+  .nav-menu {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .nav-link {
-    flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.75rem;
-    padding: var(--spacing-sm);
+    flex: 1;
+    justify-content: center;
   }
 }

@@ -1,8 +1,15 @@
+import { motion } from "motion/react";
 import './Card.css';
 
 const Card = ({ children, className = '', title, subtitle, icon, action }) => {
   return (
-    <div className={`ui-card ${className}`}>
+    <motion.section
+      className={`ui-card ${className}`}
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
+    >
       {(title || subtitle || action) && (
         <div className="ui-card-header">
           <div className="ui-card-header-content">
@@ -18,7 +25,7 @@ const Card = ({ children, className = '', title, subtitle, icon, action }) => {
       <div className="ui-card-body">
         {children}
       </div>
-    </div>
+    </motion.section>
   );
 };
 

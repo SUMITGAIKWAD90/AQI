@@ -1,3 +1,4 @@
+import { HeartPulse } from "lucide-react";
 import { useMemo, useState } from "react";
 import Badge from "./Badge";
 import Card from "./Card";
@@ -25,7 +26,7 @@ function Cigrate({ location, totalData, calculatedAQI }) {
     <Card
       title="Health Impact Analysis"
       subtitle="Cigarette equivalent and air quality recommendations"
-      icon="Health"
+      icon={<HeartPulse size={20} />}
     >
       <div className="cigrate-container">
         {displayAQI !== null && (
