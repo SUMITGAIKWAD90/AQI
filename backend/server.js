@@ -1,49 +1,69 @@
-require("dotenv").config();
+// ==========================
+// LOAD ENV FIRST (CRITICAL)
+// ==========================
+require("dotenv").config({ path: __dirname + "/.env" });
+
+console.log("GROQ KEY LOADED:", process.env.GROQ_API_KEY ? "YES" : "NO");
+
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
+const http = require("http");
+const { Server } = require("socket.io");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
 
-const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+// =================  =========
+// VALIDATE ENV VARIABLES
+// ==========================
+if (!process.env.GROQ_API_KEY) {
+  console.error("❌ GROQ_API_KEY is missing in .env");
+  process.exit(1);
+}
+
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("⚠️ GEMINI_API_KEY not found (Gemini routes will fail)");
+}
+
+// ==========================
+// INIT APP
+// ==========================
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
+// ==========================
+// INIT AI CLIENTS
+// ==========================
+const openai = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
+// ==========================
+// SENSOR STATE
+// ==========================
 let latestReading = null;
 const streamClients = new Set();
 
+// ==========================
+// HELPERS
+// ==========================
 const extractReading = (body) => {
   const payload = body && typeof body === "object" ? body : {};
 
-  // Supports payloads like:
-  // { sensorData: "PM2.5: 5.92 ug/m3  | AQI: 20" }
-  // or { pm25: 5.92, aqi: 20 }
   if (typeof payload.pm25 === "number" || typeof payload.aqi === "number") {
     return {
-      pm25: typeof payload.pm25 === "number" ? payload.pm25 : null,
-      aqi: typeof payload.aqi === "number" ? payload.aqi : null,
-      sensorData: payload.sensorData ?? null,
-    };
-  }
-
-  if (typeof payload.pm25 === "string" || typeof payload.aqi === "string") {
-    const pm = Number(payload.pm25);
-    const aqi = Number(payload.aqi);
-    return {
-      pm25: Number.isFinite(pm) ? pm : null,
-      aqi: Number.isFinite(aqi) ? aqi : null,
+      pm25: payload.pm25 ?? null,
+      aqi: payload.aqi ?? null,
       sensorData: payload.sensorData ?? null,
     };
   }
@@ -73,12 +93,22 @@ const broadcastReading = (reading) => {
   });
 };
 
+// ==========================
+// ROUTES
+// ==========================
+
+app.get("/", (_req, res) => {
+  res.send("AI Server is running 🚀");
+});
+
+// SSE stream
 app.get("/api/stream", (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
   });
+
   res.flushHeaders();
   res.write("retry: 3000\n\n");
 
@@ -93,130 +123,57 @@ app.get("/api/stream", (req, res) => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.send("AI Server is running 🚀");
-});
+// // Receive sensor data
+// app.post("/api/sensor-data", (req, res) => {
+//   const parsed = extractReading(req.body);
 
+//   latestReading = {
+//     ...parsed,
+//     timestamp: new Date().toISOString(),
+//     raw: req.body,
+//   };
 
-app.post("/api/sensor", (req, res) => {
-  latestData = req.body;
-  io.emit("sensorData", latestData); // 🔥 real-time push
-  res.send("OK");
-});
+//   io.emit("sensorData", latestReading);
+//   broadcastReading(latestReading);
 
-// app.post("/chat", async (req, res) => {
-//   try {
-//     const { userMessage, aqiData } = req.body;
+//   res.send("Data received");
+// });
 
-//     const prompt = `
-// You are an environmental AI assistant.
-
-// AQI Data:
-// ${JSON.stringify(aqiData, null, 2)}
-
-// User Question:
-// ${userMessage}
-
-// Give short, clear health advice.
-// `;
-
-//     const response = await axios.post(
-//       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
-//       {
-//         contents: [
-//           {
-//             parts: [{ text: prompt }]
-//           }
-//         ]
-//       },
-//       {
-//         headers: {
-//           "Content-Type": "application/json",
-//           "X-goog-api-key": process.env.GEMINI_API_KEY
-//         }
-//       }
-//     );
-
-//     const text =
-//       response.data.candidates[0].content.parts[0].text;
-
-//     res.json({ reply: text });
-
-//   } catch (error) {
-//     console.log("FULL ERROR:", error.response?.data || error.message);
-//     res.status(500).json({
-//       error: error.response?.data || error.message
-//     });
-//   }
+// app.get("/api/sensor-data", (_req, res) => {
+//   res.json(latestReading || { pm25: null, aqi: null, sensorData: null });
 // });
 
 
-app.get("/api/sensor-data", (_req, res) => {
-  res.json(latestReading || { pm25: null, aqi: null, sensorData: null });
-});
-
+// Receive sensor data
 app.post("/api/sensor-data", (req, res) => {
-  console.log("Sensor Reading:", req.body);
+
+  console.log("\n📥 Incoming Sensor Data RAW:", req.body);
 
   const parsed = extractReading(req.body);
+
   latestReading = {
     ...parsed,
     timestamp: new Date().toISOString(),
     raw: req.body,
   };
 
+  console.log(`
+🔵 LIVE SENSOR UPDATE
+PM2.5 : ${latestReading.pm25}
+AQI   : ${latestReading.aqi}
+Time  : ${latestReading.timestamp}
+`);
+
+  io.emit("sensorData", latestReading);
   broadcastReading(latestReading);
+
   res.send("Data received");
 });
 
-// Optional compatibility for older sender code.
-app.post("/api/sensor", (req, res) => {
-  console.log("Sensor Reading:", req.body);
 
-  const parsed = extractReading(req.body);
-  latestReading = {
-    ...parsed,
-    timestamp: new Date().toISOString(),
-    raw: req.body,
-  };
-
-  broadcastReading(latestReading);
-  res.send("Data received");
-});
-
-// chatbot feature
-
-// app.post("/chat", async (req, res) => {
-//   try {
-//     const { userMessage, aqiData } = req.body;
-
-//     const prompt = `
-// You are an environmental AI assistant.
-
-// Current AQI Data:
-// ${JSON.stringify(aqiData, null, 2)}
-
-// User Question:
-// ${userMessage}
-
-// Give a short, clear health-focused answer.
-// `;
-
-//     const model = genAI.getGenerativeModel({
-//       model: "gemini-1.5-flash-latest"
-//     });
-
-//     const result = await model.generateContent(prompt);
-//     const response = await result.response;
-
-//     res.json({ reply: response.text() });
-
-//   } catch (error) {
-//     console.error("FULL ERROR:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
+// ==========================
+// CHAT ROUTE (GROQ)
+// ==========================
 app.post("/chat", async (req, res) => {
   try {
     const { userMessage, aqiData } = req.body;
@@ -234,7 +191,7 @@ Give short clear health advice.
 `;
 
     const completion = await openai.chat.completions.create({
-  model: "llama-3.1-8b-instant",
+      model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: "You are an environmental AI assistant." },
         { role: "user", content: prompt }
@@ -246,14 +203,14 @@ Give short clear health advice.
     });
 
   } catch (error) {
-    console.log("FULL ERROR:", error.message);
+    console.error("CHAT ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-server.listen(5000, () => {
-  console.log("Backend running on port 5000");
-});
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// ==========================
+// START SERVER (ONLY ONCE)
+// ==========================
+server.listen(PORT, () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
