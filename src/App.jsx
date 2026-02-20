@@ -6,6 +6,7 @@ import MapView from './components/MapView';
 import Navbar from './components/Navbar';
 import SafeRoute from './components/SafeRoute';
 import TravelBuddy from './components/TravelBuddy';
+import AIChat from './components/AIChats';
 
 function App() {
   const [selectedLocation, setSelectedLocation] = useState({
@@ -13,6 +14,8 @@ function App() {
     lon: 73.8567,
   });
 
+  const [aqiData, setAqiData] = useState(null); // NEW
+  
   return (
     <div className='App'>
       <Navbar/>
@@ -27,7 +30,7 @@ function App() {
 
                 {/* Charts Section */}
                 <div className="dashboard-bottom">
-                  <AirQualityChart lat={selectedLocation?.lat} lon={selectedLocation?.lon} />
+                  <AirQualityChart lat={selectedLocation?.lat} lon={selectedLocation?.lon} onDataFetched={setAqiData}/>
                 </div>
 
                 {/* Safe Route Section */}
@@ -38,6 +41,11 @@ function App() {
           <Route path="/travel-buddy" element={<TravelBuddy />} />
         </Routes>
       </div>
+   {/* AI Chat is placed OUTSIDE routes so it appears everywhere */}
+      <AIChat 
+        aqiData={aqiData}
+        location={selectedLocation}
+      />
     </div>
   );
 }
