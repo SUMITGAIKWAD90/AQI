@@ -111,7 +111,7 @@ const toDailyAqi = (rows) => {
     }));
 };
 
-const AirQualityChart = ({ lat, lon }) => {
+const AirQualityChart = ({ lat, lon, onDataFetched }) => {
   const displayLat = Number.isFinite(Number(lat)) ? Number(lat) : DEFAULT_COORDS.lat;
   const displayLon = Number.isFinite(Number(lon)) ? Number(lon) : DEFAULT_COORDS.lon;
 
@@ -194,6 +194,23 @@ const AirQualityChart = ({ lat, lon }) => {
           dayRows,
           source: AQI_SOURCE_LABEL,
         });
+        // 🔥 Send latest AQI data to parent (for AI Chat)
+        if (onDataFetched) {
+          const latest = dayRows[dayRows.length - 1];
+
+          onDataFetched({
+            currentAQI: latest?.aqi,
+            level: getAqiLevelLabel(latest?.aqi),
+            trend: getTrendInfo(dayRows),
+            averageAQI: average(dayRows.map(r => r.aqi)),
+            coordinates: {
+              lat: displayLat,
+              lon: displayLon,
+            },
+            history: dayRows.slice(-7), // last 7 days
+          });
+        }
+
         setLoading(false);
       } catch (fetchError) {
         if (!isMounted) return;

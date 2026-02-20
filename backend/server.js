@@ -1,12 +1,26 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
 
+const openai = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 let latestReading = null;
 const streamClients = new Set();
 
@@ -79,6 +93,64 @@ app.get("/api/stream", (req, res) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.send("AI Server is running 🚀");
+});
+
+
+app.post("/api/sensor", (req, res) => {
+  latestData = req.body;
+  io.emit("sensorData", latestData); // 🔥 real-time push
+  res.send("OK");
+});
+
+// app.post("/chat", async (req, res) => {
+//   try {
+//     const { userMessage, aqiData } = req.body;
+
+//     const prompt = `
+// You are an environmental AI assistant.
+
+// AQI Data:
+// ${JSON.stringify(aqiData, null, 2)}
+
+// User Question:
+// ${userMessage}
+
+// Give short, clear health advice.
+// `;
+
+//     const response = await axios.post(
+//       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
+//       {
+//         contents: [
+//           {
+//             parts: [{ text: prompt }]
+//           }
+//         ]
+//       },
+//       {
+//         headers: {
+//           "Content-Type": "application/json",
+//           "X-goog-api-key": process.env.GEMINI_API_KEY
+//         }
+//       }
+//     );
+
+//     const text =
+//       response.data.candidates[0].content.parts[0].text;
+
+//     res.json({ reply: text });
+
+//   } catch (error) {
+//     console.log("FULL ERROR:", error.response?.data || error.message);
+//     res.status(500).json({
+//       error: error.response?.data || error.message
+//     });
+//   }
+// });
+
+
 app.get("/api/sensor-data", (_req, res) => {
   res.json(latestReading || { pm25: null, aqi: null, sensorData: null });
 });
@@ -112,6 +184,76 @@ app.post("/api/sensor", (req, res) => {
   res.send("Data received");
 });
 
+// chatbot feature
+
+// app.post("/chat", async (req, res) => {
+//   try {
+//     const { userMessage, aqiData } = req.body;
+
+//     const prompt = `
+// You are an environmental AI assistant.
+
+// Current AQI Data:
+// ${JSON.stringify(aqiData, null, 2)}
+
+// User Question:
+// ${userMessage}
+
+// Give a short, clear health-focused answer.
+// `;
+
+//     const model = genAI.getGenerativeModel({
+//       model: "gemini-1.5-flash-latest"
+//     });
+
+//     const result = await model.generateContent(prompt);
+//     const response = await result.response;
+
+//     res.json({ reply: response.text() });
+
+//   } catch (error) {
+//     console.error("FULL ERROR:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+app.post("/chat", async (req, res) => {
+  try {
+    const { userMessage, aqiData } = req.body;
+
+    const prompt = `
+You are an environmental AI assistant.
+
+AQI Data:
+${JSON.stringify(aqiData, null, 2)}
+
+User Question:
+${userMessage}
+
+Give short clear health advice.
+`;
+
+    const completion = await openai.chat.completions.create({
+  model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "You are an environmental AI assistant." },
+        { role: "user", content: prompt }
+      ]
+    });
+
+    res.json({
+      reply: completion.choices[0].message.content
+    });
+
+  } catch (error) {
+    console.log("FULL ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+server.listen(5000, () => {
+  console.log("Backend running on port 5000");
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
