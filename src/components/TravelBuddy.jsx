@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   BatteryFull,
@@ -11,12 +11,12 @@ import {
   Wifi,
   Wind,
 } from "lucide-react";
-import {
-  calculateAQIFromComponents,
-  getAQIMetadata,
-  getAQIRecommendation,
-} from "./airQualityUtils";
+import { calculateAQIFromComponents, getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
 import "./TravelBuddy.css";
+
+const apiBase =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
+  "";
 
 const devicePacket = {
   deviceId: "TB-AX12",
@@ -41,49 +41,124 @@ const devicePacket = {
 };
 
 const packetHistory = [
-  {
-    timestamp: "10:42",
-    pm2_5: 28.1,
-    pm10: 61.2,
-  },
-  {
-    timestamp: "10:47",
-    pm2_5: 31.4,
-    pm10: 66.9,
-  },
-  {
-    timestamp: "10:52",
-    pm2_5: 32.8,
-    pm10: 68.4,
-  },
+  { timestamp: "10:42", pm2_5: 28.1, pm10: 61.2 },
+  { timestamp: "10:47", pm2_5: 31.4, pm10: 66.9 },
+  { timestamp: "10:52", pm2_5: 32.8, pm10: 68.4 },
 ];
 
 const TravelBuddy = () => {
-  const aqi = useMemo(
+  const [livePm25, setLivePm25] = useState(devicePacket.sensors.pm2_5);
+  const [liveAqi, setLiveAqi] = useState(null);
+  const [liveSensorLine, setLiveSensorLine] = useState("");
+
+  // Stream live PM2.5 from backend SSE (falls back to dummy)
+  useEffect(() => {
+    const streamUrl = `${apiBase}/api/stream`;
+    const es = new EventSource(streamUrl);
+    let isActive = true;
+
+    const parseSensorLine = (line) => {
+      if (typeof line !== "string") return { pm25: null, aqi: null };
+      const pmMatch = line.match(/PM2\.5:\s*([-+]?\d*\.?\d+)/i);
+      const aqiMatch = line.match(/AQI:\s*(\d+)/i);
+      return {
+        pm25: pmMatch ? Number(pmMatch[1]) : null,
+        aqi: aqiMatch ? Number(aqiMatch[1]) : null,
+      };
+    };
+
+    const applyReading = (data) => {
+      const pm25Number =
+        typeof data.pm25 === "number"
+          ? data.pm25
+          : typeof data.pm25 === "string"
+          ? Number(data.pm25)
+          : null;
+      const aqiNumber =
+        typeof data.aqi === "number"
+          ? data.aqi
+          : typeof data.aqi === "string"
+          ? Number(data.aqi)
+          : null;
+
+      if (Number.isFinite(pm25Number)) setLivePm25(Number(pm25Number.toFixed(1)));
+      if (Number.isFinite(aqiNumber)) setLiveAqi(Math.round(aqiNumber));
+
+      if (typeof data.sensorData === "string" && data.sensorData.trim()) {
+        const line = data.sensorData.trim();
+        setLiveSensorLine(line);
+        const parsed = parseSensorLine(line);
+        if (Number.isFinite(parsed.pm25)) setLivePm25(Number(parsed.pm25.toFixed(1)));
+        if (Number.isFinite(parsed.aqi)) setLiveAqi(Math.round(parsed.aqi));
+      }
+    };
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        applyReading(data);
+      } catch (err) {
+        console.error("Failed to parse stream payload", err);
+      }
+    };
+
+    // Keep SSE open; browser handles auto-reconnect.
+    es.onerror = () => {};
+
+    // Poll fallback for dev reliability if SSE is interrupted.
+    const pollTimer = setInterval(async () => {
+      try {
+        const response = await fetch(`${apiBase}/api/sensor-data`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (isActive) applyReading(data);
+      } catch {
+        // Ignore transient polling errors.
+      }
+    }, 2000);
+
+    return () => {
+      isActive = false;
+      clearInterval(pollTimer);
+      es.close();
+    };
+  }, []);
+
+  const livePacket = useMemo(
+    () => ({
+      ...devicePacket,
+      sensors: { ...devicePacket.sensors, pm2_5: livePm25 },
+    }),
+    [livePm25]
+  );
+
+  const computedAqi = useMemo(
     () =>
       calculateAQIFromComponents({
-        pm2_5: devicePacket.sensors.pm2_5,
-        pm10: devicePacket.sensors.pm10,
+        pm2_5: livePacket.sensors.pm2_5,
+        pm10: livePacket.sensors.pm10,
       }),
-    []
+    [livePacket]
   );
+
+  // Use live AQI from sensor payload as source-of-truth.
+  const aqi = Number.isFinite(liveAqi) ? liveAqi : null;
+
   const aqiMeta = useMemo(() => getAQIMetadata(aqi), [aqi]);
   const aqiRecommendation = useMemo(() => getAQIRecommendation(aqi), [aqi]);
 
   const previousAqi = useMemo(() => {
+    if (Number.isFinite(liveAqi)) return liveAqi;
     const previous = packetHistory[1];
-    return calculateAQIFromComponents({
-      pm2_5: previous.pm2_5,
-      pm10: previous.pm10,
-    });
-  }, []);
+    return calculateAQIFromComponents({ pm2_5: previous.pm2_5, pm10: previous.pm10 });
+  }, [liveAqi]);
 
   const hasAqi = Number.isFinite(aqi);
   const hasPrevAqi = Number.isFinite(previousAqi);
   const trendValue = hasAqi && hasPrevAqi ? aqi - previousAqi : 0;
   const trendLabel = trendValue <= -3 ? "Improving" : trendValue >= 3 ? "Rising" : "Stable";
 
-  const exposureScore = Math.max(0, Math.min(100, Math.round(100 - (aqi ?? 0) / 5)));
+  const exposureScore = Math.max(0, Math.min(100, Math.round(100 - ((aqi ?? computedAqi ?? 0) / 5))));
 
   return (
     <div className="travel-buddy-page">
@@ -107,7 +182,7 @@ const TravelBuddy = () => {
               </div>
               <div>
                 <span className="metric-label">Battery</span>
-                <strong>{devicePacket.battery}%</strong>
+                <strong>{livePacket.battery}%</strong>
               </div>
             </div>
             <div className="metric-card">
@@ -116,7 +191,7 @@ const TravelBuddy = () => {
               </div>
               <div>
                 <span className="metric-label">Signal</span>
-                <strong>{devicePacket.signal} dBm</strong>
+                <strong>{livePacket.signal} dBm</strong>
               </div>
             </div>
             <div className="metric-card">
@@ -133,15 +208,15 @@ const TravelBuddy = () => {
           <div className="travel-hero-footer">
             <div className="device-meta">
               <span>Device ID</span>
-              <strong>{devicePacket.deviceId}</strong>
+              <strong>{livePacket.deviceId}</strong>
             </div>
             <div className="device-meta">
               <span>Firmware</span>
-              <strong>{devicePacket.firmware}</strong>
+              <strong>{livePacket.firmware}</strong>
             </div>
             <div className="device-meta">
               <span>Last Sync</span>
-              <strong>{devicePacket.lastSync}</strong>
+              <strong>{livePacket.lastSync}</strong>
             </div>
           </div>
         </div>
@@ -176,7 +251,7 @@ const TravelBuddy = () => {
           </div>
           <div className="device-location">
             <MapPin size={16} />
-            <span>{devicePacket.location.label}</span>
+            <span>{livePacket.location.label}</span>
           </div>
         </div>
       </section>
@@ -184,7 +259,7 @@ const TravelBuddy = () => {
       <section className="travel-grid">
         <div className="travel-card aqi-card">
           <div className="travel-card-header">
-            <h3>Computed AQI</h3>
+            <h3>Live AQI</h3>
             <span className="pill" style={{ color: aqiMeta.color }}>
               {aqiMeta.label}
             </span>
@@ -193,6 +268,7 @@ const TravelBuddy = () => {
             {aqi ?? "--"}
           </div>
           <p className="aqi-recommendation">{aqiRecommendation}</p>
+          {liveSensorLine ? <p className="aqi-recommendation">{liveSensorLine}</p> : null}
           <div className="aqi-footer">
             <div>
               <span className="small-label">Trend</span>
@@ -219,42 +295,42 @@ const TravelBuddy = () => {
               <Wind size={18} />
               <div>
                 <span>PM2.5</span>
-                <strong>{devicePacket.sensors.pm2_5} µg/m³</strong>
+                <strong>{livePacket.sensors.pm2_5} µg/m³</strong>
               </div>
             </div>
             <div className="reading-item">
               <Wind size={18} />
               <div>
                 <span>PM10</span>
-                <strong>{devicePacket.sensors.pm10} µg/m³</strong>
+                <strong>{livePacket.sensors.pm10} µg/m³</strong>
               </div>
             </div>
             <div className="reading-item">
               <Activity size={18} />
               <div>
                 <span>CO₂</span>
-                <strong>{devicePacket.sensors.co2} ppm</strong>
+                <strong>{livePacket.sensors.co2} ppm</strong>
               </div>
             </div>
             <div className="reading-item">
               <Gauge size={18} />
               <div>
                 <span>VOC</span>
-                <strong>{devicePacket.sensors.voc} mg/m³</strong>
+                <strong>{livePacket.sensors.voc} mg/m³</strong>
               </div>
             </div>
             <div className="reading-item">
               <ThermometerSun size={18} />
               <div>
                 <span>Temp</span>
-                <strong>{devicePacket.sensors.temp} °C</strong>
+                <strong>{livePacket.sensors.temp} °C</strong>
               </div>
             </div>
             <div className="reading-item">
               <Droplets size={18} />
               <div>
                 <span>Humidity</span>
-                <strong>{devicePacket.sensors.humidity}%</strong>
+                <strong>{livePacket.sensors.humidity}%</strong>
               </div>
             </div>
           </div>
@@ -323,15 +399,16 @@ const TravelBuddy = () => {
           </div>
           <pre className="packet-json">
 {`{
-  "deviceId": "${devicePacket.deviceId}",
+  "deviceId": "${livePacket.deviceId}",
   "timestamp": "2026-02-11T10:52:12+05:30",
   "sensors": {
-    "pm2_5": ${devicePacket.sensors.pm2_5},
-    "pm10": ${devicePacket.sensors.pm10},
-    "co2": ${devicePacket.sensors.co2},
-    "voc": ${devicePacket.sensors.voc},
-    "temp": ${devicePacket.sensors.temp},
-    "humidity": ${devicePacket.sensors.humidity}
+    "pm2_5": ${livePacket.sensors.pm2_5},
+    "aqi": ${Number.isFinite(liveAqi) ? liveAqi : "null"},
+    "pm10": ${livePacket.sensors.pm10},
+    "co2": ${livePacket.sensors.co2},
+    "voc": ${livePacket.sensors.voc},
+    "temp": ${livePacket.sensors.temp},
+    "humidity": ${livePacket.sensors.humidity}
   }
 }`}
           </pre>
