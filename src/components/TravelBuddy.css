@@ -378,3 +378,118 @@
     gap: var(--spacing-md);
   }
 }
+
+
+
+
+
+
+
+/* ── AQI Toast Portal ──────────────────────────────────────────────────────── */
+
+.tb-toast-portal {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  pointer-events: none;
+  width: min(380px, calc(100vw - 2.5rem));
+}
+
+/* ── Individual toast ── */
+.tb-toast {
+  pointer-events: all;
+  border-radius: 14px;
+  border: 1px solid var(--toast-border);
+  background: var(--toast-bg);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  overflow: hidden;
+  /* enter/exit */
+  opacity: 0;
+  transform: translateX(24px) scale(0.97);
+  transition:
+    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tb-toast--in {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.tb-toast--out {
+  opacity: 0;
+  transform: translateX(24px) scale(0.96);
+}
+
+/* ── Body ── */
+.tb-toast-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 0.85rem;
+}
+
+.tb-toast-icon {
+  font-size: 1.45rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+  filter: drop-shadow(0 0 6px var(--toast-accent));
+}
+
+.tb-toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tb-toast-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--toast-accent);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.tb-toast-line {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+/* ── Dismiss button ── */
+.tb-toast-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: 6px;
+  line-height: 1;
+  margin-top: 1px;
+  transition: color 0.15s, background 0.15s;
+}
+.tb-toast-close:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Auto-dismiss progress bar ── */
+.tb-toast-progress {
+  height: 3px;
+  background: var(--toast-accent);
+  opacity: 0.7;
+  transition: width 100ms linear;
+  border-radius: 0 0 14px 14px;
+}
