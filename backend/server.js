@@ -136,22 +136,47 @@ app.post("/chat", async (req, res) => {
   try {
     const { userMessage, aqiData } = req.body;
 
-    const prompt = `
-You are an environmental AI assistant.
+//     const prompt = `
+// You are an environmental AI assistant.
 
-AQI Data:
+// AQI Data:
+// ${JSON.stringify(aqiData, null, 2)}
+
+// User Question:
+// ${userMessage}
+
+// Give short clear health advice.
+// `;
+
+const prompt = `
+You are an environmental health intelligence system.
+
+Analyze the following air quality data carefully and provide a structured scientific response.
+
+AQI DATA:
 ${JSON.stringify(aqiData, null, 2)}
 
-User Question:
+USER QUESTION:
 ${userMessage}
 
-Give short clear health advice.
+Instructions:
+1. Start with a short summary of today's air quality.
+2. Provide a Health Risk Score from 1–10 (10 = extremely hazardous).
+3. Explain health impact for:
+   - General public
+   - Children
+   - Elderly
+   - People with respiratory issues
+4. Give 3 practical recommendations.
+5. Provide a confidence level (Low / Medium / High) based on data completeness.
+6. Keep tone professional, like an environmental scientist.
+7. Keep response under 200 words.
 `;
 
     const completion = await openai.chat.completions.create({
   model: "llama-3.1-8b-instant",
       messages: [
-        { role: "system", content: "You are an environmental AI assistant." },
+        { role: "system", content: 'You are an environmental scientist and air quality analyst.Speak in a professional, data-driven tone.Avoid casual language.Use structured bullet points.'},
         { role: "user", content: prompt }
       ]
     });

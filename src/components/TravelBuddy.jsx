@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState , useEffect} from "react";
 import {
   Activity,
   BatteryFull,
@@ -58,7 +58,19 @@ const packetHistory = [
   },
 ];
 
+
+const getAqiBand = (aqi) => {
+  if (aqi <= 50) return "good";
+  if (aqi <= 100) return "moderate";
+  if (aqi <= 150) return "unhealthy";
+  if (aqi <= 200) return "very_unhealthy";
+  return "hazardous";
+};
+
+
+
 const TravelBuddy = () => {
+
   const aqi = useMemo(
     () =>
       calculateAQIFromComponents({
@@ -67,7 +79,59 @@ const TravelBuddy = () => {
       }),
     []
   );
+
+  const [previousBand, setPreviousBand] = useState(null);
+
+  useEffect(() => {
+    if (!aqi) return;
+
+    const currentBand = getAqiBand(aqi);
+
+    if (previousBand && previousBand !== currentBand) {
+
+      // Trigger only for dangerous levels
+      if (
+        currentBand === "unhealthy" ||
+        currentBand === "very_unhealthy" ||
+        currentBand === "hazardous"
+      ) {
+        triggerHealthWarning(currentBand, aqi);
+      }
+    }
+
+    setPreviousBand(currentBand);
+
+  }, [aqi]);
+
+  const triggerHealthWarning = (band, aqi) => {
+
+    const messages = {
+      unhealthy: `
+⚠️ Air Quality Warning (AQI: ${aqi})
+Air is unhealthy for sensitive groups.
+Avoid prolonged outdoor exposure.
+`,
+      very_unhealthy: `
+🚨 Severe Air Pollution Alert (AQI: ${aqi})
+Health risk for all groups.
+Wear N95 mask.
+Limit outdoor activity.
+`,
+      hazardous: `
+🚨🚨 Emergency Pollution Level (AQI: ${aqi})
+Serious health effects possible.
+Stay indoors.
+Use air purifier if available.
+`
+    };
+
+    alert(messages[band]);
+  };
+
+
+
   const aqiMeta = useMemo(() => getAQIMetadata(aqi), [aqi]);
+  console.log("aqiMeta ", aqiMeta);
   const aqiRecommendation = useMemo(() => getAQIRecommendation(aqi), [aqi]);
 
   const previousAqi = useMemo(() => {
@@ -322,7 +386,7 @@ const TravelBuddy = () => {
             <span className="chip">Wi-Fi JSON</span>
           </div>
           <pre className="packet-json">
-{`{
+            {`{
   "deviceId": "${devicePacket.deviceId}",
   "timestamp": "2026-02-11T10:52:12+05:30",
   "sensors": {
