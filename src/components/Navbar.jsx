@@ -43,10 +43,13 @@ const Navbar = () => {
             </NavLink>
           </li>
           <li className="nav-item">
-            <Link to="https://wildfire-monitoring-2.onrender.com/" className="nav-link">
+            <NavLink
+              to="/Solutions"
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            >
               <Flame size={18} className="nav-icon" />
-              Wildfire Monitor
-            </Link>
+              Solutions
+            </NavLink>
           </li>
         </ul>
       </div>

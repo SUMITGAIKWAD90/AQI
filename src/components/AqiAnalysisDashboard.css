@@ -1,0 +1,298 @@
+/* /* ── AQI Analysis Dashboard ─────────────────────────────────────────────────
+   Themed for light blue-grey backgrounds (~#e8eef5)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* ── Root wrapper ── */
+.aqia-root {
+  margin-top: 2rem;
+  animation: aqia-fade-up 0.5s ease both;
+}
+
+@keyframes aqia-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Section header ── */
+.aqia-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 1.4rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(71, 120, 160, 0.18);
+}
+
+.aqia-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.aqia-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0891b2;
+}
+
+.aqia-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f2942;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+/* ── Live pulse badge ── */
+.aqia-pulse-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(8, 145, 178, 0.08);
+  border: 1px solid rgba(8, 145, 178, 0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+}
+
+.aqia-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0891b2;
+  box-shadow: 0 0 0 0 rgba(8, 145, 178, 0.5);
+  animation: aqia-pulse 2s ease infinite;
+}
+
+@keyframes aqia-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(8, 145, 178, 0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(8, 145, 178, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(8, 145, 178, 0); }
+}
+
+.aqia-pulse-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0891b2;
+}
+
+/* ── 3-column grid ── */
+.aqia-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 860px) {
+  .aqia-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Card ── */
+.aqia-card {
+  position: relative;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(71, 120, 160, 0.14);
+  box-shadow:
+    0 2px 8px rgba(15, 41, 66, 0.06),
+    0 1px 2px rgba(15, 41, 66, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.25rem 1.6rem;
+  animation: aqia-card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+
+.aqia-card:hover {
+  border-color: var(--accent);
+  box-shadow:
+    0 8px 32px rgba(15, 41, 66, 0.12),
+    0 0 0 1px var(--accent) inset;
+  transform: translateY(-2px);
+}
+
+@keyframes aqia-card-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Top accent bar ── */
+.aqia-card-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent);
+  opacity: 0.9;
+}
+
+/* ── Bottom tint wash ── */
+.aqia-card-glow-strip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: linear-gradient(to top, var(--track), transparent);
+  pointer-events: none;
+  border-radius: 0 0 18px 18px;
+}
+
+/* ── Card head ── */
+.aqia-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.aqia-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--track);
+  border: 1.5px solid var(--glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.aqia-card-abbr {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  opacity: 0.6;
+  margin: 0 0 0.15rem;
+  text-transform: uppercase;
+}
+
+.aqia-card-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0f2942;
+  margin: 0 0 0.15rem;
+  letter-spacing: -0.01em;
+}
+
+.aqia-card-tagline {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.69rem;
+  color: #8ba3ba;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ── Item count ghost number ── */
+.aqia-count {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+  opacity: 0.12;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+/* ── Divider ── */
+.aqia-divider {
+  height: 1px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  opacity: 0.25;
+  margin-bottom: 1rem;
+}
+
+/* ── Items list ── */
+.aqia-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.aqia-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+  animation: aqia-item-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) var(--item-delay, 0ms) both;
+}
+
+.aqia-item:hover {
+  background: var(--track);
+}
+
+@keyframes aqia-item-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.aqia-item-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.5;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  width: 18px;
+}
+
+.aqia-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.aqia-item-text {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: #334e68;
+  line-height: 1.45;
+  transition: color 0.2s;
+}
+
+.aqia-item:hover .aqia-item-text {
+  color: #0f2942;
+}
+
+.aqia-item:hover .aqia-item-dot {
+  opacity: 1;
+}
+
+.ai-analysis-wrapper {
+  margin-top: 16px;
+  min-height: 120px;
+  position: relative;
+}
+
+.ai-analysis-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 0;
+}

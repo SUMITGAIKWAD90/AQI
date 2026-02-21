@@ -208,6 +208,98 @@ Give short clear health advice.
   }
 });
 
+
+// ==========================
+// AQI DATA ANALYIZE (GROQ)
+// ==========================
+
+app.post("/area-analysis", async (req, res) => {
+  try {
+    const { locationName, lat, lon, aqi } = req.body;
+
+//     const prompt = `
+// You are an environmental policy and pollution analysis expert.
+
+// Location: ${locationName}
+// Coordinates: ${lat}, ${lon}
+// Current AQI: ${aqi}
+
+// Analyze and return STRICT JSON only in this format:
+
+// {
+//   "main_causes": ["", "", ""],
+//   "contributing_sectors": ["", "", ""],
+//   "government_solutions": ["", "", ""],
+//   "citizen_actions": ["", "", ""],
+//   "confidence": "Low | Medium | High"
+// }
+
+// Rules:
+// - Do not explain.
+// - Do not add extra text.
+// - Return valid JSON only.
+// - Keep each array item short.
+// `;
+
+const prompt = `
+You are a regional environmental intelligence analyst.
+
+Analyze pollution patterns SPECIFICALLY for the given location using geographic reasoning.
+
+Location Details:
+- Name: ${locationName}
+- Coordinates: ${lat}, ${lon}
+- Current AQI: ${aqi}
+
+Instructions:
+1. Consider regional geography (coastal, inland, industrial belt, traffic hub, agricultural area, etc.)
+2. Consider typical economic activities of the region.
+3. Consider possible seasonal effects (winter smog, summer dust, crop burning, sea breeze, etc.)
+4. Avoid generic answers like "traffic and industry" unless strongly justified.
+5. Make causes DIFFERENT for different cities.
+
+Return STRICT JSON only in this format:
+
+{
+  "main_causes": ["", "", ""],
+  "contributing_sectors": ["", "", ""],
+  "government_solutions": ["", "", ""],
+  "citizen_actions": ["", "", ""],
+  "confidence": "Low | Medium | High"
+}
+
+Rules:
+- No explanation.
+- No markdown.
+- No text outside JSON.
+- Each item short and specific.
+- Make analysis geographically unique.
+`;
+    const completion = await openai.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "Return only structured JSON." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.4
+    });
+
+    const text = completion.choices[0].message.content;
+
+    res.json({ analysis: JSON.parse(text) });
+
+  } catch (error) {
+    console.log("AI ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+
+
+
+
 // ==========================
 // START SERVER (ONLY ONCE)
 // ==========================
