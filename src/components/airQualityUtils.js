@@ -50,19 +50,27 @@ export const getAQIMetadata = (aqi) => {
     };
   }
 
-  if (value < 50) {
-    return { label: "Good", variant: "good", color: "#10B981" };
+  if (value <= 50) {
+    return { label: "Good", variant: "good", color: "#22C55E" };
   }
 
-  if (value < 100) {
-    return { label: "Moderate", variant: "moderate", color: "#FBBF24" };
+  if (value <= 100) {
+    return { label: "Moderate", variant: "moderate", color: "#EAB308" };
   }
 
-  if (value < 150) {
-    return { label: "Unhealthy", variant: "unhealthy", color: "#F59E0B" };
+  if (value <= 150) {
+    return { label: "Poor", variant: "poor", color: "#F97316" };
   }
 
-  return { label: "Very Unhealthy", variant: "very-unhealthy", color: "#EF4444" };
+  if (value <= 200) {
+    return { label: "Unhealthy", variant: "unhealthy", color: "#EF4444" };
+  }
+
+  if (value <= 300) {
+    return { label: "Severe", variant: "severe", color: "#A855F7" };
+  }
+
+  return { label: "Hazardous", variant: "hazardous", color: "#7F1D1D" };
 };
 
 export const getAQIRecommendation = (aqi) => {
@@ -71,17 +79,25 @@ export const getAQIRecommendation = (aqi) => {
     return "AQI data is unavailable right now. Please retry in a moment.";
   }
 
-  if (value < 50) {
+  if (value <= 50) {
     return "Air quality is good. Maintain greenery and reduce vehicle emissions.";
   }
 
-  if (value < 100) {
+  if (value <= 100) {
     return "Moderate air quality. Sensitive groups should limit long outdoor exertion.";
   }
 
-  if (value < 150) {
+  if (value <= 150) {
+    return "Poor air quality. Limit outdoor exposure and use protective masks if needed.";
+  }
+
+  if (value <= 200) {
     return "Unhealthy air quality. Children, elders, and people with lung disease should reduce exposure.";
   }
 
-  return "Very unhealthy air quality. Avoid prolonged outdoor activities and use protective masks.";
+  if (value <= 300) {
+    return "Severe air quality. Avoid outdoor activities and use N95 masks.";
+  }
+
+  return "Hazardous air quality. Stay indoors and use air purifiers if available.";
 };

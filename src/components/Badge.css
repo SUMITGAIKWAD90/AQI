@@ -64,21 +64,33 @@
 }
 
 .badge-moderate {
-  background: rgba(245, 158, 11, 0.16);
+  background: rgba(234, 179, 8, 0.16);
   color: var(--aqi-moderate);
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.badge-poor {
+  background: rgba(249, 115, 22, 0.16);
+  color: var(--aqi-poor);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .badge-unhealthy {
-  background: rgba(249, 115, 22, 0.16);
+  background: rgba(239, 68, 68, 0.18);
   color: var(--aqi-unhealthy);
-  border-color: rgba(249, 115, 22, 0.3);
+  border-color: rgba(239, 68, 68, 0.32);
 }
 
 .badge-very-unhealthy {
   background: rgba(239, 68, 68, 0.18);
-  color: var(--aqi-very-unhealthy);
+  color: var(--aqi-unhealthy);
   border-color: rgba(239, 68, 68, 0.32);
+}
+
+.badge-severe {
+  background: rgba(168, 85, 247, 0.2);
+  color: var(--aqi-severe);
+  border-color: rgba(168, 85, 247, 0.35);
 }
 
 .badge-hazardous {

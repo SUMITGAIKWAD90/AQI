@@ -1,0 +1,96 @@
+.mini-map-wrapper {
+  position: relative;
+}
+
+.mini-map-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 30;
+}
+
+.mini-map-card {
+  position: sticky;
+  top: 6rem;
+  height: 360px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-map-card.is-expanded {
+  position: fixed;
+  inset: 6vh 6vw;
+  height: auto;
+  z-index: 40;
+  box-shadow: var(--shadow-lg);
+}
+
+.mini-map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem 0.8rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.mini-map-title {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mini-map-subtitle {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mini-map-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-map-toggle:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+}
+
+.mini-map-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-map-body .leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .mini-map-card {
+    position: relative;
+    top: auto;
+  }
+
+  .mini-map-card.is-expanded {
+    inset: 4vh 4vw 8vh;
+  }
+}

@@ -1028,7 +1028,6 @@ const SafeRoute = () => {
             <MapContainer
               center={DEFAULT_CENTER}
               zoom={DEFAULT_ZOOM}
-              style={{ height: "100%", width: "100%", borderRadius: "var(--radius-md)" }}
               className="route-map"
               preferCanvas={true}
               whenReady={(event) => {

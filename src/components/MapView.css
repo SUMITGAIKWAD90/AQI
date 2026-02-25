@@ -1,22 +1,28 @@
-Map Section
-.map-section {
-  min-height: 600px;
+﻿.dashboard-left {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
+}
+
+.search-panel {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.4rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .map-search-bar {
   display: flex;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  align-items: center;
 }
 
 .search-input {
   flex: 1;
-  padding: 0.9rem 1rem;
-  background: #ffffff;
-  border: 1px solid var(--border-subtle);
+  padding: 0.85rem 1rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -29,33 +35,25 @@ Map Section
 }
 
 .search-input:focus {
-  border-color: rgba(15, 118, 110, 0.45);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
 }
 
 .search-button {
-  padding: 0.9rem 1.2rem;
-  background: var(--primary-color);
+  padding: 0.85rem 1.2rem;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.9), rgba(99, 102, 241, 0.9));
   border: none;
   border-radius: var(--radius-md);
-  color: white;
+  color: #0f172a;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 
 .search-button:hover:not(:disabled) {
-  background: var(--primary-dark);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
-}
-
-.search-button:active:not(:disabled) {
-  transform: translateY(0);
 }
 
 .search-button:disabled {
@@ -63,17 +61,17 @@ Map Section
   cursor: not-allowed;
 }
 
+.search-helper-text {
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
 .search-results {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-md);
-}
-
-.search-helper-text {
-  margin: 0 0 var(--spacing-md) 0;
-  color: var(--text-muted);
-  font-size: 0.82rem;
+  margin-top: var(--spacing-md);
 }
 
 .search-result-item {
@@ -83,9 +81,9 @@ Map Section
   gap: var(--spacing-md);
   width: 100%;
   text-align: left;
-  padding: 0.75rem 0.9rem;
-  background: #ffffff;
-  border: 1px solid var(--border-subtle);
+  padding: 0.7rem 0.9rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.9rem;
@@ -94,7 +92,7 @@ Map Section
 }
 
 .search-result-item:hover {
-  border-color: rgba(15, 118, 110, 0.35);
+  border-color: rgba(56, 189, 248, 0.45);
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
@@ -119,8 +117,8 @@ Map Section
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: var(--primary-color);
-  box-shadow: 0 0 12px rgba(20, 184, 166, 0.75);
+  background: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.75);
   animation: searchPulse 1.6s ease-out infinite;
   pointer-events: none;
 }
@@ -130,7 +128,7 @@ Map Section
   position: absolute;
   inset: -10px;
   border-radius: 50%;
-  border: 2px solid rgba(20, 184, 166, 0.6);
+  border: 2px solid rgba(56, 189, 248, 0.6);
   animation: searchRing 1.6s ease-out infinite;
   pointer-events: none;
 }
@@ -161,30 +159,10 @@ Map Section
   }
 }
 
-.map-container-wrapper {
-  flex: 1;
-  min-height: 400px;
-  height: 520px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  position: relative;
-  background: #ffffff;
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md);
-}
-
-.map-container-wrapper .leaflet-container {
-  height: 100%;
-  width: 100%;
-  border-radius: var(--radius-lg);
-  z-index: 1;
-}
-
 .leaflet-map {
-  background: #ffffff !important;
+  background: #0f172a !important;
 }
 
-/* Map Popup Styling */
 .map-popup {
   padding: var(--spacing-sm);
 }
@@ -206,7 +184,7 @@ Map Section
 .popup-aqi-value {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: #7dd3fc;
 }
 
 .popup-recommendation {
@@ -216,7 +194,6 @@ Map Section
   line-height: 1.4;
 }
 
-/* Map Error */
 .map-error {
   position: absolute;
   top: 50%;
@@ -231,357 +208,67 @@ Map Section
   box-shadow: var(--shadow-lg);
 }
 
-/* Map Legend */
-.map-legend {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.legend-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.legend-items {
+.analysis-panel {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+.analyze-btn {
+  align-self: flex-start;
+  padding: 0.65rem 1.3rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.legend-color {
-  width: 14px;
-  height: 14px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
+.analyze-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.22);
+  box-shadow: var(--shadow-sm);
 }
 
-.legend-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
+.analyze-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* Pollutants Section */
+.ai-analysis-wrapper {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.4rem;
+}
+
+.ai-analysis-loader {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+}
+
 .pollutants-section {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .map-section {
-    min-height: 520px;
-  }
+.pollutant-sidebar {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.4rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .map-search-bar {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .search-button {
     width: 100%;
-    justify-content: center;
   }
-
-  .legend-items {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .map-container-wrapper {
-    min-height: 360px;
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/* ── AQI Analysis Dashboard ─────────────────────────────────────────────────
-   Import this file in TravelBuddy.css or add @import "./AqiAnalysisDashboard.css"
-   ─────────────────────────────────────────────────────────────────────────── */
-
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
-/* ── Root wrapper ── */
-.aqia-root {
-  margin-top: 2rem;
-  animation: aqia-fade-up 0.5s ease both;
-}
-
-@keyframes aqia-fade-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Section header ── */
-.aqia-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.aqia-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.aqia-eyebrow {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #475569;
-}
-
-.aqia-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #f1f5f9;
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
-/* ── Live pulse badge ── */
-.aqia-pulse-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.aqia-pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #00d4aa;
-  box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.5);
-  animation: aqia-pulse 2s ease infinite;
-}
-
-@keyframes aqia-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.5); }
-  70%  { box-shadow: 0 0 0 6px rgba(0, 212, 170, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); }
-}
-
-.aqia-pulse-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #00d4aa;
-}
-
-/* ── 3-column grid ── */
-.aqia-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-@media (max-width: 860px) {
-  .aqia-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Card ── */
-.aqia-card {
-  position: relative;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  padding: 1.25rem 1.25rem 1.5rem;
-  animation: aqia-card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
-  transition: border-color 0.25s, box-shadow 0.25s;
-}
-
-.aqia-card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.04) inset;
-}
-
-@keyframes aqia-card-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ── Top accent bar ── */
-.aqia-card-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent);
-  opacity: 0.85;
-}
-
-/* ── Bottom glow ── */
-.aqia-card-glow-strip {
-  position: absolute;
-  bottom: 0;
-  left: 10%;
-  right: 10%;
-  height: 60px;
-  background: radial-gradient(ellipse at center bottom, var(--glow), transparent 70%);
-  pointer-events: none;
-}
-
-/* ── Card head ── */
-.aqia-card-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.aqia-card-icon {
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--track);
-  border: 1px solid var(--glow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 2px;
-}
-
-.aqia-card-abbr {
-  font-family: 'Syne', sans-serif;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--accent);
-  opacity: 0.7;
-  margin: 0 0 0.1rem;
-  text-transform: uppercase;
-}
-
-.aqia-card-label {
-  font-family: 'Syne', sans-serif;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0 0 0.15rem;
-  letter-spacing: -0.01em;
-}
-
-.aqia-card-tagline {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.68rem;
-  color: #475569;
-  margin: 0;
-  font-weight: 400;
-}
-
-/* ── Item count badge ── */
-.aqia-count {
-  margin-left: auto;
-  flex-shrink: 0;
-  font-family: 'Syne', sans-serif;
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--accent);
-  opacity: 0.18;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-/* ── Divider ── */
-.aqia-divider {
-  height: 1px;
-  background: linear-gradient(to right, var(--accent), transparent);
-  opacity: 0.2;
-  margin-bottom: 1rem;
-}
-
-/* ── Items list ── */
-.aqia-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.aqia-item {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  animation: aqia-item-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) var(--item-delay, 0ms) both;
-}
-
-@keyframes aqia-item-in {
-  from { opacity: 0; transform: translateX(-8px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.aqia-item-num {
-  font-family: 'Syne', sans-serif;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: var(--accent);
-  opacity: 0.45;
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
-  width: 18px;
-}
-
-.aqia-item-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-  opacity: 0.6;
-  box-shadow: 0 0 5px var(--accent);
-}
-
-.aqia-item-text {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: #94a3b8;
-  line-height: 1.45;
-  transition: color 0.2s;
-}
-
-.aqia-item:hover .aqia-item-text {
-  color: #cbd5e1;
-}
-
-.aqia-item:hover .aqia-item-dot {
-  opacity: 1;
 }

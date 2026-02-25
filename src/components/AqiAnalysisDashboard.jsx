@@ -1,58 +1,120 @@
-// Drop-in replacement for the areaAnalysis block.
-// Import and add to your TravelBuddy.css:  @import "./AqiAnalysisDashboard.css";
+﻿import { useEffect, useMemo, useState } from "react";
+import "./AqiAnalysisDashboard.css";
 
-const CATEGORIES = [
-  {
-    key: "main_causes",
-    label: "Main Causes",
-    abbr: "01",
-    accent: "#ff6b35",
-    glow: "rgba(255,107,53,0.18)",
-    track: "rgba(255,107,53,0.08)",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
-        <path d="M12 8v4l3 3"/>
-      </svg>
-    ),
-    tagline: "Root Sources",
-  },
-  {
-    key: "government_solutions",
-    label: "Government Solutions",
-    abbr: "02",
-    accent: "#00d4aa",
-    glow: "rgba(0,212,170,0.15)",
-    track: "rgba(0,212,170,0.07)",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="10" rx="2"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        <line x1="12" y1="15" x2="12" y2="17"/>
-      </svg>
-    ),
-    tagline: "Policy & Regulation",
-  },
-  {
-    key: "citizen_actions",
-    label: "Citizen Actions",
-    abbr: "03",
-    accent: "#7c9ff5",
-    glow: "rgba(124,159,245,0.15)",
-    track: "rgba(124,159,245,0.07)",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
-    tagline: "Individual Impact",
-  },
-];
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+};
+
+const buildAnalysisText = (areaAnalysis) => {
+  if (!areaAnalysis) return "";
+
+  const lines = [
+    "AI analysis initialized.",
+    "Scanning AQI signals, emissions sources, and policy context...",
+    "Synthesizing local insights...",
+    "",
+  ];
+
+  const sections = [
+    {
+      title: "Main Causes",
+      key: "main_causes",
+      empty: "No dominant source signal yet.",
+    },
+    {
+      title: "Government Solutions",
+      key: "government_solutions",
+      empty: "No actionable policy updates detected.",
+    },
+    {
+      title: "Citizen Actions",
+      key: "citizen_actions",
+      empty: "No immediate citizen guidance available yet.",
+    },
+  ];
+
+  sections.forEach((section) => {
+    const items = normalizeList(areaAnalysis[section.key]);
+    lines.push(`${section.title}:`);
+    if (!items.length) {
+      lines.push(`- ${section.empty}`);
+    } else {
+      items.forEach((item) => {
+        lines.push(`- ${item}`);
+      });
+    }
+    lines.push("");
+  });
+
+  return lines.join("\n").trim();
+};
+
+const buildSummary = (areaAnalysis) => {
+  const mainCauses = normalizeList(areaAnalysis?.main_causes);
+  const governmentSolutions = normalizeList(areaAnalysis?.government_solutions);
+  const citizenActions = normalizeList(areaAnalysis?.citizen_actions);
+  const sections = [
+    { label: "Main Causes", count: mainCauses.length },
+    { label: "Gov. Solutions", count: governmentSolutions.length },
+    { label: "Citizen Actions", count: citizenActions.length },
+  ];
+  const total = sections.reduce((sum, section) => sum + section.count, 0);
+  return { sections, total };
+};
 
 export function AqiAnalysisDashboard({ areaAnalysis }) {
+  const analysisText = useMemo(() => buildAnalysisText(areaAnalysis), [areaAnalysis]);
+  const summary = useMemo(() => buildSummary(areaAnalysis), [areaAnalysis]);
+
+  const [typedText, setTypedText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    if (!analysisText) {
+      setTypedText("");
+      setIsTyping(false);
+      return;
+    }
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      setTypedText(analysisText);
+      setIsTyping(false);
+      return;
+    }
+
+    let isActive = true;
+    let index = 0;
+    let timer = null;
+
+    setTypedText("");
+    setIsTyping(true);
+
+    const typeNext = () => {
+      if (!isActive) return;
+      index += 1;
+      setTypedText(analysisText.slice(0, index));
+      if (index < analysisText.length) {
+        timer = setTimeout(typeNext, 18);
+      } else {
+        setIsTyping(false);
+      }
+    };
+
+    timer = setTimeout(typeNext, 320);
+
+    return () => {
+      isActive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [analysisText]);
+
   if (!areaAnalysis) return null;
 
   return (
@@ -61,66 +123,51 @@ export function AqiAnalysisDashboard({ areaAnalysis }) {
         <div className="aqia-header-left">
           <span className="aqia-eyebrow">AI Intelligence Report</span>
           <h3 className="aqia-title">Area Analysis</h3>
+          <p className="aqia-subtitle">
+            Live synthesis from sensors, weather context, and policy signals.
+          </p>
         </div>
-        <div className="aqia-pulse-wrap">
-          <span className="aqia-pulse-dot" />
-          <span className="aqia-pulse-label">Live Insight</span>
+        <div className="aqia-status">
+          <span className={`aqia-status-dot ${isTyping ? "is-typing" : ""}`} />
+          <span className="aqia-status-label">
+            {isTyping ? "Synthesizing" : "Analysis Ready"}
+          </span>
         </div>
       </div>
 
-      <div className="aqia-grid">
-        {CATEGORIES.map((cat, ci) => {
-          const items = areaAnalysis[cat.key] ?? [];
-          return (
-            <div
-              key={cat.key}
-              className="aqia-card"
-              style={{
-                "--accent": cat.accent,
-                "--glow": cat.glow,
-                "--track": cat.track,
-                "--delay": `${ci * 90}ms`,
-              }}
-            >
-              {/* Card top bar */}
-              <div className="aqia-card-bar" />
+      <div className="aqia-terminal">
+        <div className="aqia-terminal-bar">
+          <div className="aqia-terminal-controls">
+            <span className="control red" />
+            <span className="control amber" />
+            <span className="control green" />
+          </div>
+          <div className="aqia-terminal-title">AQI Insight Engine</div>
+          <div className="aqia-terminal-chip">
+            {isTyping ? "Generating" : "Complete"}
+          </div>
+        </div>
 
-              {/* Card header */}
-              <div className="aqia-card-head">
-                <div className="aqia-card-icon" style={{ color: cat.accent }}>
-                  {cat.icon}
-                </div>
-                <div>
-                  <p className="aqia-card-abbr">{cat.abbr}</p>
-                  <h4 className="aqia-card-label">{cat.label}</h4>
-                  <p className="aqia-card-tagline">{cat.tagline}</p>
-                </div>
-                <span className="aqia-count">{items.length}</span>
-              </div>
+        <div className="aqia-terminal-body">
+          <pre className="aqia-typed" aria-live="polite" aria-atomic="false">
+            {typedText}
+            <span
+              className={`aqia-caret ${isTyping ? "is-active" : ""}`}
+              aria-hidden="true"
+            />
+          </pre>
+        </div>
 
-              {/* Divider */}
-              <div className="aqia-divider" />
-
-              {/* Items */}
-              <ul className="aqia-items">
-                {items.map((item, ii) => (
-                  <li
-                    key={ii}
-                    className="aqia-item"
-                    style={{ "--item-delay": `${ci * 90 + ii * 55}ms` }}
-                  >
-                    <span className="aqia-item-num">{String(ii + 1).padStart(2, "0")}</span>
-                    <span className="aqia-item-dot" />
-                    <span className="aqia-item-text">{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Bottom glow strip */}
-              <div className="aqia-card-glow-strip" />
-            </div>
-          );
-        })}
+        <div className="aqia-meta">
+          <span>Signals processed: {summary.total}</span>
+          <div className="aqia-meta-tags">
+            {summary.sections.map((section) => (
+              <span key={section.label} className="aqia-tag">
+                {section.label}: {section.count}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

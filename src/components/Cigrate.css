@@ -4,10 +4,9 @@
   gap: var(--spacing-lg);
 }
 
-/* AQI Notification */
 .aqi-notification {
-  background: rgba(20, 184, 166, 0.1);
-  border: 1px solid rgba(15, 118, 110, 0.2);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.28);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
 }
@@ -34,7 +33,6 @@
   line-height: 1.5;
 }
 
-/* Cigarette Section */
 .cigarette-section {
   display: flex;
   flex-direction: column;
@@ -45,7 +43,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
@@ -57,8 +55,8 @@
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background: rgba(15, 118, 110, 0.12);
-  color: var(--primary-color);
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
   font-weight: 700;
 }
 
@@ -77,16 +75,15 @@
 .metric-value {
   font-size: 1.35rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--primary-light);
 }
 
-/* Cigarette Equivalence */
 .cigarette-equivalence {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 146, 60, 0.1));
-  border: 1px solid rgba(249, 115, 22, 0.25);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(239, 68, 68, 0.12));
+  border: 1px solid rgba(249, 115, 22, 0.35);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
 }
@@ -98,7 +95,7 @@
   place-items: center;
   border-radius: 16px;
   background: rgba(249, 115, 22, 0.2);
-  color: var(--secondary-dark);
+  color: var(--secondary-color);
   font-weight: 700;
 }
 
@@ -118,7 +115,7 @@
 .equivalence-value {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--secondary-dark);
+  color: var(--secondary-color);
   line-height: 1.2;
 }
 
@@ -127,7 +124,6 @@
   color: var(--text-muted);
 }
 
-/* Loading Message */
 .loading-message {
   display: flex;
   align-items: center;
@@ -144,7 +140,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -152,13 +149,12 @@
   }
 }
 
-/* Prediction Button */
 .prediction-button {
   padding: 0.9rem 1.4rem;
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.9), rgba(99, 102, 241, 0.9));
   border: none;
   border-radius: var(--radius-md);
-  color: white;
+  color: #0f172a;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -175,7 +171,6 @@
   transform: translateY(0);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .cigarette-metric,
   .cigarette-equivalence {

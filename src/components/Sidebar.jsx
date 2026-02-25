@@ -21,15 +21,18 @@ const Sidebar = ({ totalData }) => {
     if (key === 'pm2_5') {
       if (value <= 12) return { label: 'Good', variant: 'good' };
       if (value <= 35.4) return { label: 'Moderate', variant: 'moderate' };
-      if (value <= 55.4) return { label: 'Unhealthy', variant: 'unhealthy' };
-      if (value <= 150.4) return { label: 'Very Unhealthy', variant: 'very-unhealthy' };
+      if (value <= 55.4) return { label: 'Poor', variant: 'poor' };
+      if (value <= 150.4) return { label: 'Unhealthy', variant: 'unhealthy' };
+      if (value <= 250.4) return { label: 'Severe', variant: 'severe' };
       return { label: 'Hazardous', variant: 'hazardous' };
     }
     if (key === 'pm10') {
       if (value <= 54) return { label: 'Good', variant: 'good' };
       if (value <= 154) return { label: 'Moderate', variant: 'moderate' };
-      if (value <= 254) return { label: 'Unhealthy', variant: 'unhealthy' };
-      return { label: 'Very Unhealthy', variant: 'very-unhealthy' };
+      if (value <= 254) return { label: 'Poor', variant: 'poor' };
+      if (value <= 354) return { label: 'Unhealthy', variant: 'unhealthy' };
+      if (value <= 424) return { label: 'Severe', variant: 'severe' };
+      return { label: 'Hazardous', variant: 'hazardous' };
     }
     return { label: 'Monitored', variant: 'default' };
   };
@@ -43,7 +46,7 @@ const Sidebar = ({ totalData }) => {
       
       <div className="pollutant-list">
         {totalData ? (
-          <Fade cascade damping={0.04} triggerOnce style={{ display: "contents" }}>
+          <Fade cascade damping={0.04} triggerOnce className="pollutant-fade">
             {Object.entries(totalData).map(([key, value], index) => {
               const info = getPollutantInfo(key);
               const level = getPollutantLevel(key, value);

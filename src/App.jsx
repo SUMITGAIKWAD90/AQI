@@ -69,6 +69,7 @@ import SafeRoute from './components/SafeRoute';
 import TravelBuddy from './components/TravelBuddy';
 import AIChat from './components/AIChats';
 import axios from "axios";
+// import Solutions from './components/Solutions';
 
 function App() {
   const [selectedLocation, setSelectedLocation] = useState({
@@ -182,6 +183,9 @@ function App() {
             }
           />
           <Route path="/travel-buddy" element={<TravelBuddy />} />
+
+          {/* <Route path="/Solutions" element={<Solutions />} /> */}
+
         </Routes>
       </div>
       {/* AI Chat is placed OUTSIDE routes so it appears everywhere */}

@@ -2,10 +2,10 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(15, 23, 42, 0.82);
   border-bottom: 1px solid var(--border-subtle);
   backdrop-filter: blur(18px);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45);
 }
 
 .navbar-container {
@@ -30,9 +30,9 @@
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(15, 118, 110, 0.35));
-  border: 1px solid rgba(15, 118, 110, 0.25);
-  color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(168, 85, 247, 0.35));
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #7dd3fc;
 }
 
 .brand-text {
@@ -74,22 +74,22 @@
   border-radius: var(--radius-full);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   border: 1px solid transparent;
   background: transparent;
   transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-  border-color: rgba(15, 118, 110, 0.2);
-  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(59, 130, 246, 0.12);
   color: var(--text-primary);
 }
 
 .nav-link.active {
-  color: var(--primary-color);
-  background: rgba(20, 184, 166, 0.16);
-  border-color: rgba(15, 118, 110, 0.28);
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(59, 130, 246, 0.45);
 }
 
 .nav-icon {

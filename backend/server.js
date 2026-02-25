@@ -9,10 +9,11 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const mongoose = require("mongoose");
 
-// =================  =========
+// ==========================
 // VALIDATE ENV VARIABLES
 // ==========================
 if (!process.env.GROQ_API_KEY) {
@@ -29,14 +30,37 @@ if (!process.env.GEMINI_API_KEY) {
 // ==========================
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
+const io = new Server(server, { cors: { origin: "*" } });
 
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// ==========================
+// MONGODB CONNECTION
+// ==========================
+const MONGO_URI =
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/AQI";
+
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+
+// Schema → TECH_3.0 collection
+const sensorSchema = new mongoose.Schema(
+  {
+    pm25: Number,
+    aqi: Number,
+    sensorData: String,
+    timestamp: Date,
+    raw: mongoose.Schema.Types.Mixed,
+  },
+  { versionKey: false, collection: "TECH_3.0" }
+);
+
+const SensorData = mongoose.model("SensorData", sensorSchema);
 
 // ==========================
 // INIT AI CLIENTS
@@ -96,7 +120,6 @@ const broadcastReading = (reading) => {
 // ==========================
 // ROUTES
 // ==========================
-
 app.get("/", (_req, res) => {
   res.send("AI Server is running 🚀");
 });
@@ -123,37 +146,17 @@ app.get("/api/stream", (req, res) => {
   });
 });
 
-// // Receive sensor data
-// app.post("/api/sensor-data", (req, res) => {
-//   const parsed = extractReading(req.body);
-
-//   latestReading = {
-//     ...parsed,
-//     timestamp: new Date().toISOString(),
-//     raw: req.body,
-//   };
-
-//   io.emit("sensorData", latestReading);
-//   broadcastReading(latestReading);
-
-//   res.send("Data received");
-// });
-
-// app.get("/api/sensor-data", (_req, res) => {
-//   res.json(latestReading || { pm25: null, aqi: null, sensorData: null });
-// });
-
-
-// Receive sensor data
-app.post("/api/sensor-data", (req, res) => {
-
+// ==========================
+// RECEIVE SENSOR DATA (Mongo + SSE + Socket)
+// ==========================
+app.post("/api/sensor-data", async (req, res) => {
   console.log("\n📥 Incoming Sensor Data RAW:", req.body);
 
   const parsed = extractReading(req.body);
 
   latestReading = {
     ...parsed,
-    timestamp: new Date().toISOString(),
+    timestamp: new Date(),
     raw: req.body,
   };
 
@@ -164,12 +167,25 @@ AQI   : ${latestReading.aqi}
 Time  : ${latestReading.timestamp}
 `);
 
+  // Save to MongoDB
+  try {
+    const newData = new SensorData(latestReading);
+    await newData.save();
+    console.log("💾 Data saved to MongoDB 'TECH_3.0'");
+  } catch (error) {
+    console.error("❌ MongoDB Save Error:", error);
+  }
+
   io.emit("sensorData", latestReading);
   broadcastReading(latestReading);
 
   res.send("Data received");
 });
 
+// Optional: latest reading fetch
+app.get("/api/sensor-data", (_req, res) => {
+  res.json(latestReading || { pm25: null, aqi: null, sensorData: null });
+});
 
 // ==========================
 // CHAT ROUTE (GROQ)
@@ -194,54 +210,27 @@ Give short clear health advice.
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: "You are an environmental AI assistant." },
-        { role: "user", content: prompt }
-      ]
+        { role: "user", content: prompt },
+      ],
     });
 
     res.json({
-      reply: completion.choices[0].message.content
+      reply: completion.choices[0].message.content,
     });
-
   } catch (error) {
     console.error("CHAT ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-
 // ==========================
-// AQI DATA ANALYIZE (GROQ)
+// AREA ANALYSIS (STRICT JSON)
 // ==========================
-
 app.post("/area-analysis", async (req, res) => {
   try {
     const { locationName, lat, lon, aqi } = req.body;
 
-//     const prompt = `
-// You are an environmental policy and pollution analysis expert.
-
-// Location: ${locationName}
-// Coordinates: ${lat}, ${lon}
-// Current AQI: ${aqi}
-
-// Analyze and return STRICT JSON only in this format:
-
-// {
-//   "main_causes": ["", "", ""],
-//   "contributing_sectors": ["", "", ""],
-//   "government_solutions": ["", "", ""],
-//   "citizen_actions": ["", "", ""],
-//   "confidence": "Low | Medium | High"
-// }
-
-// Rules:
-// - Do not explain.
-// - Do not add extra text.
-// - Return valid JSON only.
-// - Keep each array item short.
-// `;
-
-const prompt = `
+    const prompt = `
 You are a regional environmental intelligence analyst.
 
 Analyze pollution patterns SPECIFICALLY for the given location using geographic reasoning.
@@ -250,13 +239,6 @@ Location Details:
 - Name: ${locationName}
 - Coordinates: ${lat}, ${lon}
 - Current AQI: ${aqi}
-
-Instructions:
-1. Consider regional geography (coastal, inland, industrial belt, traffic hub, agricultural area, etc.)
-2. Consider typical economic activities of the region.
-3. Consider possible seasonal effects (winter smog, summer dust, crop burning, sea breeze, etc.)
-4. Avoid generic answers like "traffic and industry" unless strongly justified.
-5. Make causes DIFFERENT for different cities.
 
 Return STRICT JSON only in this format:
 
@@ -273,35 +255,27 @@ Rules:
 - No markdown.
 - No text outside JSON.
 - Each item short and specific.
-- Make analysis geographically unique.
 `;
+
     const completion = await openai.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: "Return only structured JSON." },
-        { role: "user", content: prompt }
+        { role: "user", content: prompt },
       ],
-      temperature: 0.4
+      temperature: 0.4,
     });
 
     const text = completion.choices[0].message.content;
-
     res.json({ analysis: JSON.parse(text) });
-
   } catch (error) {
     console.log("AI ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-
-
-
-
-
-
 // ==========================
-// START SERVER (ONLY ONCE)
+// START SERVER
 // ==========================
 server.listen(PORT, () => {
   console.log(`🚀 Backend running on port ${PORT}`);

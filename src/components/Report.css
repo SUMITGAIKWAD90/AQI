@@ -1,7 +1,7 @@
 .report-container {
   margin-top: var(--spacing-lg);
   padding: var(--spacing-lg);
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
@@ -29,18 +29,19 @@
   overflow-y: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.75);
 }
 
 .forecast-table {
   width: 100%;
   border-collapse: collapse;
-  background: #ffffff;
+  background: transparent;
 }
 
 .forecast-table thead {
   position: sticky;
   top: 0;
-  background: var(--bg-tertiary);
+  background: rgba(15, 23, 42, 0.95);
   z-index: 10;
 }
 
@@ -58,14 +59,14 @@
 }
 
 .forecast-table tbody tr:hover {
-  background: rgba(15, 23, 42, 0.03);
+  background: rgba(56, 189, 248, 0.08);
 }
 
 .forecast-table td {
   padding: var(--spacing-md);
   font-size: 0.85rem;
   color: var(--text-secondary);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .date-cell {
@@ -108,7 +109,6 @@
   margin: 0;
 }
 
-/* Scrollbar */
 .forecast-table-wrapper::-webkit-scrollbar {
   width: 6px;
 }

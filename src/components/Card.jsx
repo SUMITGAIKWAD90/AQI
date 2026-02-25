@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import './Card.css';
 
 const Card = ({ children, className = '', title, subtitle, icon, action }) => {

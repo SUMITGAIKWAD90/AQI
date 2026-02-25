@@ -1,0 +1,54 @@
+.aqi-character {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.aqi-character-figure {
+  width: 140px;
+  height: 200px;
+  display: grid;
+  place-items: center;
+}
+
+.aqi-character-figure svg {
+  width: 100%;
+  height: 100%;
+}
+
+.aqi-character-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.aqi-character-state {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.aqi-character-note {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.aqi-character--healthy .aqi-character-note {
+  color: var(--aqi-good);
+}
+
+.aqi-character--moderate .aqi-character-note {
+  color: var(--aqi-moderate);
+}
+
+.aqi-character--unhealthy .aqi-character-note {
+  color: var(--aqi-poor);
+}
+
+.aqi-character--severe .aqi-character-note {
+  color: var(--aqi-severe);
+}

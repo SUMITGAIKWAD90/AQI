@@ -1,5 +1,5 @@
 import { Cpu, Flame, LayoutGrid, Wind } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
 

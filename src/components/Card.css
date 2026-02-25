@@ -1,5 +1,5 @@
 .ui-card {
-  background: var(--surface);
+  background: var(--bg-card);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
   border: 1px solid var(--border-subtle);
@@ -9,12 +9,14 @@
   display: flex;
   flex-direction: column;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .ui-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  border-color: rgba(15, 118, 110, 0.18);
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 .ui-card-header {
@@ -41,8 +43,8 @@
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: rgba(20, 184, 166, 0.12);
-  color: var(--primary-color);
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
   font-size: 1rem;
 }
 

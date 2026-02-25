@@ -815,7 +815,6 @@ import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Circle, MapContainer, Marker, Popup, TileLayer, Tooltip } from "react-leaflet";
 import Badge from "./Badge";
-import Card from "./Card";
 import Cigrate from "./Cigrate";
 import Loader from "./Loader";
 import "./MapView.css";
@@ -823,9 +822,9 @@ import Sidebar from "./Sidebar";
 import { getAQIMetadata, getAQIRecommendation } from "./airQualityUtils";
 import { getCurrentUserLocation } from "./geolocationUtils";
 import { fetchCurrentAQIByCoords, OPENWEATHER_API_KEY } from "./openWeatherApi";
-
-import "./AqiAnalysisDashboard.css"
 import { AqiAnalysisDashboard } from "./AqiAnalysisDashboard";
+import AqiHeroCard from "./aqi/AqiHeroCard";
+import MiniAqiMap from "./map/MiniAqiMap";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -1424,24 +1423,37 @@ const MapView = ({ city, onLocationChange, aqiData, analysisLoading, areaAnalysi
   // 🛠️ Suggestions for Air Quality Improvement
   const getRecommendations = (aqi) => getAQIRecommendation(aqi);
 
+  const locationLabel = useMemo(() => {
+    if (!location) return "";
+    return [location.name, location.state, location.country].filter(Boolean).join(", ");
+  }, [location]);
+
+  const timestampLabel = useMemo(() => {
+    if (!aqiData?.currentAQI) return "";
+    return new Date().toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, [aqiData?.currentAQI]);
+
+  const pm25Value = Number.isFinite(Number(totalData?.pm2_5)) ? Number(totalData?.pm2_5) : null;
+  const pm10Value = Number.isFinite(Number(totalData?.pm10)) ? Number(totalData?.pm10) : null;
+
+  const handleMiniMapToggle = useCallback(() => {
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 320);
+  }, []);
+
   return (
     <>
-      <div className="dashboard-top">
-        {/* Map Section */}
-        <div className="map-section">
-          <Card
-            title="Interactive Air Quality Map"
-            subtitle="Real-time AQI monitoring with location-based data"
-            icon="🗺️"
-            action={
-              calAQI !== null && (
-                <Badge variant={getAQIBadgeVariant(calAQI)} size="lg">
-                  AQI: {calAQI} - {getAQILabel(calAQI)}
-                </Badge>
-              )
-            }
-          >
-            {/* Search Bar */}
+      <div className="dashboard-hero">
+        <div className="dashboard-left">
+          <div className="search-panel">
             <div className="map-search-bar">
               <input
                 type="text"
@@ -1456,7 +1468,7 @@ const MapView = ({ city, onLocationChange, aqiData, analysisLoading, areaAnalysi
                     fetchCityCoordinates(searchCity);
                   }
                 }}
-                placeholder="Search city/state/country"
+                placeholder="Search city, state, or country"
                 className="search-input"
               />
               <button
@@ -1464,11 +1476,11 @@ const MapView = ({ city, onLocationChange, aqiData, analysisLoading, areaAnalysi
                 className="search-button"
                 disabled={searching || !searchCity}
               >
-                {searching ? '🔍' : '🔎'} Search
+                {searching ? "Searching..." : "Search"}
               </button>
             </div>
             <p className="search-helper-text">
-              Search by city, city plus state, or country. If multiple matches appear, select one from the list or map.
+              Type a location to refresh AQI, history, and map markers instantly.
             </p>
             {searchResults.length > 0 && (
               <div className="search-results">
@@ -1487,189 +1499,134 @@ const MapView = ({ city, onLocationChange, aqiData, analysisLoading, areaAnalysi
                 ))}
               </div>
             )}
+          </div>
 
-            {/* Map Container */}
-            <div className="map-container-wrapper">
-              {loading ? (
-                <Loader size="lg" text="Loading map data..." />
-              ) : (
-                <MapContainer
-                  center={DEFAULT_CENTER}
-                  zoom={DEFAULT_ZOOM}
-                  style={{ height: "100%", width: "100%", borderRadius: "var(--radius-md)" }}
-                  className="leaflet-map"
-                  preferCanvas={true}
-                  whenReady={(event) => {
-                    const mapInstance = event?.target ?? event;
-                    mapRef.current = mapInstance;
-                    setMapReady(true);
-                    console.log("Map loaded successfully");
-                  }}
-                >
-                  <TileLayer
-                    ref={tileLayerRef}
-                    eventHandlers={tileEventHandlers}
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution="&copy; OpenStreetMap contributors"
-                    maxZoom={19}
-                    keepBuffer={2}
-                    updateWhenZooming={false}
-                  />
+          <AqiHeroCard
+            aqi={calAQI ?? aqiData?.currentAQI}
+            pm25={pm25Value}
+            pm10={pm10Value}
+            locationLabel={locationLabel || "Pune, India"}
+            trend={aqiData?.trend}
+            average={aqiData?.averageAQI}
+            timestampLabel={timestampLabel}
+          />
 
-                  {searchResults.length > 0 && searchResults.map((result) => (
-                    <Marker
-                      key={`result-${result.name}-${result.lat}-${result.lon}`}
-                      position={[Number(result.lat), Number(result.lon)]}
-                      icon={searchMarkerIcon}
-                      eventHandlers={{
-                        click: () => handleResultSelect(result),
-                      }}
-                      zIndexOffset={1000}
-                    >
-                      <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                        {formatResultLabel(result)}
-                      </Tooltip>
-                    </Marker>
-                  ))}
+          <div className="analysis-panel">
+            {aqiData?.currentAQI >= 120 && (
+              <button
+                className="analyze-btn"
+                onClick={handleAnalyzeArea}
+                disabled={analysisLoading}
+              >
+                {analysisLoading ? "Analyzing..." : "AI Area Analysis"}
+              </button>
+            )}
 
-                  {/* ✅ Show Air Quality Circle Based on AQI */}
-                  {airQuality && (
-                    <Circle
-                      center={[airQuality.lat, airQuality.lon]}
-                      radius={500}
-                      pathOptions={{
-                        color: getColor(calAQI),
-                        fillColor: getColor(calAQI),
-                        fillOpacity: 0.5,
-                      }}
-                    >
-                      <Popup>
-                        <div className="map-popup">
-                          <h4 className="popup-title">Air Quality Index</h4>
-                          <div className="popup-aqi">
-                            <span className="popup-aqi-value">{airQuality.aqi}</span>
-                            <Badge variant={getAQIBadgeVariant(calAQI)} size="sm">
-                              {getAQILabel(calAQI)}
-                            </Badge>
-                          </div>
-                          <p className="popup-recommendation">{getRecommendations(calAQI)}</p>
-                        </div>
-                      </Popup>
-                    </Circle>
-                  )}
+            {aqiData?.currentAQI >= 120 && (
+              <div className="ai-analysis-wrapper">
+                {analysisLoading && (
+                  <div className="ai-analysis-loader">
+                    <Loader size="md" text="AI analyzing area..." />
+                  </div>
+                )}
 
-                  {/* ✅ Show Errors (if any) */}
-                  {error && (
-                    <div className="map-error">
-                      ⚠️ {error}
-                    </div>
-                  )}
-                </MapContainer>
-              )}
-            </div>
-
-            {/* AQI Legend */}
-            <div className="map-legend">
-              <div className="legend-title">AQI Scale</div>
-              <div className="legend-items">
-                <div className="legend-item">
-                  <span className="legend-color" style={{ background: '#10B981' }}></span>
-                  <span className="legend-label">0-50 Good</span>
-                </div>
-                <div className="legend-item">
-                  <span className="legend-color" style={{ background: '#FBBF24' }}></span>
-                  <span className="legend-label">51-100 Moderate</span>
-                </div>
-                <div className="legend-item">
-                  <span className="legend-color" style={{ background: '#F59E0B' }}></span>
-                  <span className="legend-label">101-150 Unhealthy</span>
-                </div>
-                <div className="legend-item">
-                  <span className="legend-color" style={{ background: '#EF4444' }}></span>
-                  <span className="legend-label">151+ Very Unhealthy</span>
-                </div>
+                {!analysisLoading && areaAnalysis && (
+                  <AqiAnalysisDashboard areaAnalysis={areaAnalysis} />
+                )}
               </div>
-
-              {aqiData?.currentAQI >= 120 && (
-                <button
-                  className="analyze-btn"
-                  onClick={handleAnalyzeArea}
-                  disabled={analysisLoading}
-                >
-                  {analysisLoading ? "Analyzing..." : "🧠 Analyze Area"}
-                </button>
-              )}
-
-              {/* {areaAnalysis && (
-                <div className="ai-analysis-dashboard">
-                  <div className="analysis-card">
-                    <h4>Main Causes</h4>
-                    <ul>
-                      {areaAnalysis.main_causes.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="analysis-card">
-                    <h4>Government Solutions</h4>
-                    <ul>
-                      {areaAnalysis.government_solutions.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="analysis-card">
-                    <h4>Citizen Actions</h4>
-                    <ul>
-                      {areaAnalysis.citizen_actions.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* <div className="analysis-card confidence">
-                    <h4>Confidence</h4>
-                    <p>{areaAnalysis.confidence}</p>
-                  </div> 
-                </div>
-              )} */}
-
-              {/* {aqiData?.currentAQI >= 120 && <AqiAnalysisDashboard areaAnalysis={areaAnalysis} />} */}
-
-              {aqiData?.currentAQI >= 120 && (
-                <div className="ai-analysis-wrapper">
-
-                  {analysisLoading && (
-                    <div className="ai-analysis-loader">
-                      <Loader size="md" text="AI analyzing area..." />
-                    </div>
-                  )}
-
-                  {!analysisLoading && areaAnalysis && (
-                    <AqiAnalysisDashboard areaAnalysis={areaAnalysis} />
-                  )}
-
-                </div>
-              )}
-            </div>
-          </Card>
+            )}
+          </div>
         </div>
 
-        {/* Pollutants Sidebar */}
-        <div className="pollutants-section">
-          {totalData ? <Sidebar totalData={totalData} /> : (
-            <div className="pollutant-sidebar">
-              <Loader size="md" text="Loading pollutant data..." />
-            </div>
-          )}
+        <div className="section-stack">
+          <MiniAqiMap title="AQI Map" subtitle="Heatmap overview" onToggle={handleMiniMapToggle}>
+            {loading ? (
+              <Loader size="lg" text="Loading map data..." />
+            ) : (
+              <MapContainer
+                center={DEFAULT_CENTER}
+                zoom={DEFAULT_ZOOM}
+                className="leaflet-map"
+                preferCanvas={true}
+                whenReady={(event) => {
+                  const mapInstance = event?.target ?? event;
+                  mapRef.current = mapInstance;
+                  setMapReady(true);
+                  console.log("Map loaded successfully");
+                }}
+              >
+                <TileLayer
+                  ref={tileLayerRef}
+                  eventHandlers={tileEventHandlers}
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution="&copy; OpenStreetMap contributors"
+                  maxZoom={19}
+                  keepBuffer={2}
+                  updateWhenZooming={false}
+                />
+
+                {searchResults.length > 0 && searchResults.map((result) => (
+                  <Marker
+                    key={`result-${result.name}-${result.lat}-${result.lon}`}
+                    position={[Number(result.lat), Number(result.lon)]}
+                    icon={searchMarkerIcon}
+                    eventHandlers={{
+                      click: () => handleResultSelect(result),
+                    }}
+                    zIndexOffset={1000}
+                  >
+                    <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
+                      {formatResultLabel(result)}
+                    </Tooltip>
+                  </Marker>
+                ))}
+
+                {airQuality && (
+                  <Circle
+                    center={[airQuality.lat, airQuality.lon]}
+                    radius={500}
+                    pathOptions={{
+                      color: getColor(calAQI),
+                      fillColor: getColor(calAQI),
+                      fillOpacity: 0.5,
+                    }}
+                  >
+                    <Popup>
+                      <div className="map-popup">
+                        <h4 className="popup-title">Air Quality Index</h4>
+                        <div className="popup-aqi">
+                          <span className="popup-aqi-value">{airQuality.aqi}</span>
+                          <Badge variant={getAQIBadgeVariant(calAQI)} size="sm">
+                            {getAQILabel(calAQI)}
+                          </Badge>
+                        </div>
+                        <p className="popup-recommendation">{getRecommendations(calAQI)}</p>
+                      </div>
+                    </Popup>
+                  </Circle>
+                )}
+
+                {error && (
+                  <div className="map-error">
+                    ⚠️ {error}
+                  </div>
+                )}
+              </MapContainer>
+            )}
+          </MiniAqiMap>
+
+          <div className="pollutants-section">
+            {totalData ? <Sidebar totalData={totalData} /> : (
+              <div className="pollutant-sidebar">
+                <Loader size="md" text="Loading pollutant data..." />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Cigarette Equivalent */}
       {location && totalData && (
-        <div className="dashboard-bottom">
+        <div className="dashboard-panels">
           <Cigrate location={location} totalData={totalData} calculatedAQI={calAQI} />
         </div>
       )}

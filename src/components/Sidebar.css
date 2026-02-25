@@ -1,5 +1,5 @@
 .pollutant-sidebar {
-  background: var(--surface);
+  background: var(--bg-card);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-md);
@@ -39,8 +39,12 @@
   gap: var(--spacing-md);
 }
 
+.pollutant-fade {
+  display: contents;
+}
+
 .pollutant-item {
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.65);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
@@ -51,7 +55,7 @@
 }
 
 .pollutant-item:hover {
-  border-color: rgba(15, 118, 110, 0.2);
+  border-color: rgba(56, 189, 248, 0.35);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -98,7 +102,7 @@
 .value-number {
   font-size: 1.35rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--primary-light);
   line-height: 1;
 }
 
@@ -132,7 +136,6 @@
   margin: 0;
 }
 
-/* Scrollbar for pollutant list */
 .pollutant-list::-webkit-scrollbar {
   width: 6px;
 }

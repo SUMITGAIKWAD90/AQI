@@ -1,0 +1,117 @@
+.aqi-level-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.aqi-level-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.15);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  padding: 2px;
+}
+
+.aqi-level-segment {
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.aqi-level-segment.is-good {
+  background: var(--aqi-good);
+}
+
+.aqi-level-segment.is-moderate {
+  background: var(--aqi-moderate);
+}
+
+.aqi-level-segment.is-poor {
+  background: var(--aqi-poor);
+}
+
+.aqi-level-segment.is-unhealthy {
+  background: var(--aqi-unhealthy);
+}
+
+.aqi-level-segment.is-severe {
+  background: var(--aqi-severe);
+}
+
+.aqi-level-segment.is-hazardous {
+  background: var(--aqi-hazardous);
+}
+
+.aqi-level-marker {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(15, 23, 42, 0.9);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+}
+
+.aqi-level-marker.is-good {
+  background: var(--aqi-good);
+}
+
+.aqi-level-marker.is-moderate {
+  background: var(--aqi-moderate);
+}
+
+.aqi-level-marker.is-poor {
+  background: var(--aqi-poor);
+}
+
+.aqi-level-marker.is-unhealthy {
+  background: var(--aqi-unhealthy);
+}
+
+.aqi-level-marker.is-severe {
+  background: var(--aqi-severe);
+}
+
+.aqi-level-marker.is-hazardous {
+  background: var(--aqi-hazardous);
+}
+
+.aqi-level-tooltip {
+  position: absolute;
+  top: -34px;
+  padding: 0.2rem 0.6rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.aqi-level-labels {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.aqi-level-label {
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .aqi-level-labels {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 0.35rem;
+  }
+}

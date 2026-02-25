@@ -22,10 +22,12 @@ const DEFAULT_LOOKBACK_DAYS = 45;
 const AQI_SOURCE_LABEL = "OpenWeather Current + History";
 
 const AQI_BAND_LEGEND = [
-  { label: "Good", range: "0-50", color: "rgba(34, 197, 94, 0.7)" },
-  { label: "Moderate", range: "51-100", color: "rgba(250, 204, 21, 0.74)" },
-  { label: "Unhealthy", range: "101-150", color: "rgba(249, 115, 22, 0.78)" },
-  { label: "Very Unhealthy", range: "151+", color: "rgba(239, 68, 68, 0.82)" },
+  { key: "good", label: "Good", range: "0-50" },
+  { key: "moderate", label: "Moderate", range: "51-100" },
+  { key: "poor", label: "Poor", range: "101-150" },
+  { key: "unhealthy", label: "Unhealthy", range: "151-200" },
+  { key: "severe", label: "Severe", range: "201-300" },
+  { key: "hazardous", label: "Hazardous", range: "301+" },
 ];
 
 const pad2 = (value) => String(value).padStart(2, "0");
@@ -48,28 +50,30 @@ const formatLabelDate = (dateValue) => {
 const getAqiLevelLabel = (aqi) => {
   if (aqi <= 50) return "Good";
   if (aqi <= 100) return "Moderate";
-  if (aqi <= 150) return "Unhealthy";
-  return "Very Unhealthy";
+  if (aqi <= 150) return "Poor";
+  if (aqi <= 200) return "Unhealthy";
+  if (aqi <= 300) return "Severe";
+  return "Hazardous";
 };
 
 const getAQIBarColor = (aqi) => {
   if (!Number.isFinite(aqi)) return "rgba(100, 116, 139, 0.65)";
-  if (aqi <= 25) return "rgba(22, 163, 74, 0.65)";
-  if (aqi <= 50) return "rgba(34, 197, 94, 0.68)";
-  if (aqi <= 75) return "rgba(234, 179, 8, 0.7)";
-  if (aqi <= 100) return "rgba(250, 204, 21, 0.74)";
-  if (aqi <= 125) return "rgba(251, 146, 60, 0.74)";
+  if (aqi <= 50) return "rgba(34, 197, 94, 0.72)";
+  if (aqi <= 100) return "rgba(234, 179, 8, 0.74)";
   if (aqi <= 150) return "rgba(249, 115, 22, 0.78)";
-  if (aqi <= 200) return "rgba(248, 113, 113, 0.8)";
-  return "rgba(239, 68, 68, 0.82)";
+  if (aqi <= 200) return "rgba(239, 68, 68, 0.8)";
+  if (aqi <= 300) return "rgba(168, 85, 247, 0.82)";
+  return "rgba(127, 29, 29, 0.85)";
 };
 
 const getAQIBarBorderColor = (aqi) => {
   if (!Number.isFinite(aqi)) return "rgba(100, 116, 139, 1)";
-  if (aqi <= 50) return "rgba(22, 163, 74, 1)";
+  if (aqi <= 50) return "rgba(34, 197, 94, 1)";
   if (aqi <= 100) return "rgba(234, 179, 8, 1)";
   if (aqi <= 150) return "rgba(249, 115, 22, 1)";
-  return "rgba(239, 68, 68, 1)";
+  if (aqi <= 200) return "rgba(239, 68, 68, 1)";
+  if (aqi <= 300) return "rgba(168, 85, 247, 1)";
+  return "rgba(127, 29, 29, 1)";
 };
 
 const average = (values) => {
@@ -275,10 +279,10 @@ const AirQualityChart = ({ lat, lon, onDataFetched }) => {
         display: false,
       },
       tooltip: {
-        backgroundColor: "rgba(255, 255, 255, 0.98)",
-        titleColor: "#0F172A",
-        bodyColor: "#334155",
-        borderColor: "rgba(15, 23, 42, 0.12)",
+        backgroundColor: "rgba(15, 23, 42, 0.95)",
+        titleColor: "#f8fafc",
+        bodyColor: "#cbd5f5",
+        borderColor: "rgba(148, 163, 184, 0.2)",
         borderWidth: 1,
         padding: 12,
         displayColors: false,
@@ -391,7 +395,7 @@ const AirQualityChart = ({ lat, lon, onDataFetched }) => {
         <div className="aqi-legend-row">
           {AQI_BAND_LEGEND.map((band) => (
             <div className="legend-chip" key={band.label}>
-              <span className="legend-dot" style={{ backgroundColor: band.color }}></span>
+              <span className={`legend-dot is-${band.key}`} />
               <span>{band.label}</span>
               <span className="legend-range">{band.range}</span>
             </div>
